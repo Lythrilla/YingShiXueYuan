@@ -4,34 +4,59 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"PingFang SC"', '"Microsoft YaHei"', 'system-ui', 'sans-serif'],
+        sans: [
+          'Inter',
+          '"PingFang SC"',
+          '"Microsoft YaHei"',
+          'system-ui',
+          'sans-serif',
+        ],
       },
       colors: {
-        brand: {
-          50: '#eef4ff',
-          100: '#d9e6ff',
-          200: '#bcd2ff',
-          300: '#8eb4ff',
-          400: '#588bff',
-          500: '#3a66f5',
-          600: '#2f50d6',
-          700: '#283fad',
-          800: '#263a8a',
-          900: '#25366f',
+        // Warm near-black neutral scale — the primary surface/ text language.
+        ink: {
+          50: '#f7f7f8',
+          100: '#ececee',
+          200: '#dcdce0',
+          300: '#bcbcc3',
+          400: '#92929b',
+          500: '#71717a',
+          600: '#52525b',
+          700: '#3f3f46',
+          800: '#27272a',
+          900: '#18181b',
+          950: '#101012',
+        },
+        // Restrained indigo accent, used sparingly for focus / active states.
+        accent: {
+          50: '#eef1ff',
+          100: '#e0e5ff',
+          200: '#c6cfff',
+          300: '#a3b0fc',
+          400: '#7d88f6',
+          500: '#5b63ec',
+          600: '#4944d6',
+          700: '#3d36b4',
         },
       },
       boxShadow: {
-        soft: '0 10px 40px -12px rgba(40, 63, 173, 0.18)',
-        card: '0 4px 24px -8px rgba(15, 23, 42, 0.12)',
+        card: '0 1px 2px rgba(16, 16, 18, 0.04), 0 1px 3px rgba(16, 16, 18, 0.05)',
+        soft: '0 18px 50px -28px rgba(16, 16, 18, 0.28)',
+        pop: '0 24px 60px -20px rgba(16, 16, 18, 0.35)',
       },
       keyframes: {
         'fade-up': {
-          '0%': { opacity: '0', transform: 'translateY(12px)' },
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
         },
       },
       animation: {
-        'fade-up': 'fade-up 0.5s ease-out both',
+        'fade-up': 'fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'fade-in': 'fade-in 0.3s ease-out both',
       },
     },
   },
