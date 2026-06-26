@@ -11,6 +11,17 @@ import {
   type Stats,
 } from '../api'
 import { formatDateTime, STATUS_META } from '../lib'
+import {
+  ArrowLeftIcon,
+  CloseIcon,
+  DownloadIcon,
+  HomeIcon,
+  LogoutIcon,
+  MicIcon,
+  PlusIcon,
+  SearchIcon,
+  SlidersIcon,
+} from '../icons'
 
 type Tab = 'bookings' | 'resources' | 'slots'
 
@@ -43,18 +54,27 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
   }
 
   return (
-    <div className="grid min-h-full place-items-center bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 p-4">
+    <div className="relative grid min-h-full place-items-center overflow-hidden bg-ink-950 p-4">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.06]"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)',
+          backgroundSize: '46px 46px',
+        }}
+      />
+      <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent-500/20 blur-3xl" />
       <form
         onSubmit={submit}
-        className="w-full max-w-sm animate-fade-up rounded-3xl bg-white p-8 shadow-2xl"
+        className="relative w-full max-w-sm animate-fade-up rounded-2xl bg-white p-8 shadow-pop"
       >
-        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-2xl">
-          🎙️
+        <div className="grid h-12 w-12 place-items-center rounded-xl bg-ink-950 text-white">
+          <MicIcon className="h-6 w-6" />
         </div>
-        <h1 className="mt-4 text-center text-xl font-bold text-slate-800">预约系统后台</h1>
-        <p className="mt-1 text-center text-sm text-slate-400">录音实验室管理控制台</p>
+        <h1 className="mt-5 text-xl font-semibold tracking-tight text-ink-900">预约系统后台</h1>
+        <p className="mt-1 text-[13px] text-ink-400">录音实验室管理控制台</p>
 
-        <div className="mt-6 space-y-4">
+        <div className="mt-7 space-y-4">
           <label className="block">
             <span className="label">用户名</span>
             <input
@@ -76,7 +96,7 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600">
+          <div className="mt-4 rounded-xl bg-rose-50 px-3.5 py-2.5 text-[13px] text-rose-600 ring-1 ring-inset ring-rose-100">
             {error}
           </div>
         )}
@@ -86,14 +106,20 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
         </button>
         <Link
           to="/"
-          className="mt-4 block text-center text-sm text-slate-400 hover:text-brand-500"
+          className="mt-5 flex items-center justify-center gap-1.5 text-[13px] text-ink-400 transition hover:text-ink-700"
         >
-          ← 返回预约首页
+          <ArrowLeftIcon className="h-4 w-4" /> 返回预约首页
         </Link>
       </form>
     </div>
   )
 }
+
+const TABS: [Tab, string][] = [
+  ['bookings', '预约管理'],
+  ['resources', '实验室 / 设备'],
+  ['slots', '时间段'],
+]
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>('bookings')
@@ -105,44 +131,40 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
 
   return (
     <div className="min-h-full">
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+      <header className="sticky top-0 z-20 border-b border-ink-200/70 bg-white/85 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-50 text-lg">
-              🎙️
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-ink-950 text-white">
+              <MicIcon className="h-[18px] w-[18px]" />
             </span>
             <div>
-              <div className="text-sm font-bold text-slate-800">录音实验室 · 后台</div>
-              <div className="text-xs text-slate-400">预约管理控制台</div>
+              <div className="text-sm font-semibold tracking-tight text-ink-900">
+                录音实验室 · 后台
+              </div>
+              <div className="text-[11px] text-ink-400">预约管理控制台</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Link to="/" className="btn-ghost !py-2 text-sm">
-              预约首页
+            <Link to="/" className="btn-ghost !py-2 text-[13px]">
+              <HomeIcon className="h-4 w-4" /> 预约首页
             </Link>
-            <button onClick={logout} className="btn-ghost !py-2 text-sm">
-              退出登录
+            <button onClick={logout} className="btn-ghost !py-2 text-[13px]">
+              <LogoutIcon className="h-4 w-4" /> 退出登录
             </button>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <nav className="mb-6 flex gap-2">
-          {(
-            [
-              ['bookings', '预约管理'],
-              ['resources', '实验室 / 设备'],
-              ['slots', '时间段'],
-            ] as [Tab, string][]
-          ).map(([key, label]) => (
+      <div className="mx-auto max-w-6xl px-5 py-7">
+        <nav className="mb-7 inline-flex gap-1 rounded-xl bg-ink-100/70 p-1">
+          {TABS.map(([key, label]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+              className={`rounded-lg px-3.5 py-1.5 text-[13px] font-medium tracking-tight transition ${
                 tab === key
-                  ? 'bg-brand-500 text-white shadow-soft'
-                  : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+                  ? 'bg-white text-ink-900 shadow-card'
+                  : 'text-ink-500 hover:text-ink-800'
               }`}
             >
               {label}
@@ -223,21 +245,27 @@ function BookingsTab() {
       })
   }
 
+  const hasFilter = !!(status || resourceId || date || keyword)
+
   return (
-    <div>
+    <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <StatCard label="总预约" value={stats?.total ?? 0} tone="brand" />
+        <StatCard label="总预约" value={stats?.total ?? 0} tone="ink" />
         <StatCard label="待核销" value={stats?.booked ?? 0} tone="amber" />
         <StatCard label="已核销" value={stats?.verified ?? 0} tone="emerald" />
         <StatCard label="已取消" value={stats?.cancelled ?? 0} tone="slate" />
-        <StatCard label="今日预约" value={stats?.today ?? 0} tone="brand" />
+        <StatCard label="今日预约" value={stats?.today ?? 0} tone="accent" />
       </div>
 
-      <div className="card mt-5 p-4">
+      <div className="card p-4">
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <span className="label">状态</span>
-            <select className="input !w-32" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <select
+              className="input !w-32"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
               <option value="">全部</option>
               <option value="booked">待核销</option>
               <option value="verified">已核销</option>
@@ -268,29 +296,41 @@ function BookingsTab() {
               onChange={(e) => setDate(e.target.value)}
             />
           </div>
-          <div className="flex-1">
+          <div className="min-w-[180px] flex-1">
             <span className="label">搜索</span>
-            <input
-              className="input"
-              placeholder="姓名 / 电话 / 指导教师"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-            />
+            <div className="relative">
+              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-300" />
+              <input
+                className="input pl-9"
+                placeholder="姓名 / 电话 / 指导教师"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+              />
+            </div>
           </div>
-          <button className="btn-ghost" onClick={() => { setStatus(''); setResourceId(''); setDate(''); setKeyword('') }}>
+          <button
+            className="btn-ghost"
+            disabled={!hasFilter}
+            onClick={() => {
+              setStatus('')
+              setResourceId('')
+              setDate('')
+              setKeyword('')
+            }}
+          >
             重置
           </button>
           <button className="btn-primary" onClick={exportXlsx}>
-            ⬇ 导出 Excel
+            <DownloadIcon className="h-4 w-4" /> 导出 Excel
           </button>
         </div>
       </div>
 
-      <div className="card mt-5 overflow-hidden">
+      <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-sm">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/70 text-left text-xs uppercase tracking-wide text-slate-400">
+              <tr className="border-b border-ink-100 bg-ink-50/60 text-left text-[11px] uppercase tracking-wider text-ink-400">
                 <th className="px-4 py-3 font-medium">预约人</th>
                 <th className="px-4 py-3 font-medium">资源</th>
                 <th className="px-4 py-3 font-medium">日期 / 时段</th>
@@ -304,23 +344,26 @@ function BookingsTab() {
               {bookings.map((b) => {
                 const meta = STATUS_META[b.status]
                 return (
-                  <tr key={b.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
+                  <tr
+                    key={b.id}
+                    className="border-b border-ink-100/70 last:border-0 transition hover:bg-ink-50/50"
+                  >
                     <td className="px-4 py-3">
-                      <div className="font-semibold text-slate-800">{b.applicant_name}</div>
-                      <div className="text-xs text-slate-400">{b.phone}</div>
-                      {b.major && <div className="text-xs text-slate-400">{b.major}</div>}
+                      <div className="font-medium text-ink-900">{b.applicant_name}</div>
+                      <div className="text-xs text-ink-400">{b.phone}</div>
+                      {b.major && <div className="text-xs text-ink-400">{b.major}</div>}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{b.resource.name}</td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-ink-600">{b.resource.name}</td>
+                    <td className="px-4 py-3 text-ink-600">
                       <div>{b.date}</div>
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-ink-400">
                         {b.slot.name} {b.slot.start_time}-{b.slot.end_time}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-ink-600 tabular-nums">
                       {b.num_people} 人 / {b.quantity} 套
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{b.instructor || '—'}</td>
+                    <td className="px-4 py-3 text-ink-600">{b.instructor || '—'}</td>
                     <td className="px-4 py-3">
                       <span className={`badge ${meta.className}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
@@ -332,13 +375,13 @@ function BookingsTab() {
                         {b.status === 'booked' && (
                           <>
                             <button
-                              className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-100"
+                              className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-100 transition hover:bg-emerald-100"
                               onClick={() => verify(b.id)}
                             >
                               核销
                             </button>
                             <button
-                              className="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-500 hover:bg-rose-100"
+                              className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200 transition hover:bg-rose-50"
                               onClick={() => cancel(b.id)}
                             >
                               取消
@@ -346,11 +389,11 @@ function BookingsTab() {
                           </>
                         )}
                         {b.status === 'verified' && b.verified_at && (
-                          <span className="text-xs text-slate-400">
+                          <span className="text-xs text-ink-400">
                             {formatDateTime(b.verified_at)} 核销
                           </span>
                         )}
-                        {b.status === 'cancelled' && <span className="text-xs text-slate-300">—</span>}
+                        {b.status === 'cancelled' && <span className="text-xs text-ink-300">—</span>}
                       </div>
                     </td>
                   </tr>
@@ -358,7 +401,7 @@ function BookingsTab() {
               })}
               {bookings.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-16 text-center text-slate-300">
+                  <td colSpan={7} className="px-4 py-20 text-center text-sm text-ink-300">
                     暂无预约记录
                   </td>
                 </tr>
@@ -378,18 +421,24 @@ function StatCard({
 }: {
   label: string
   value: number
-  tone: 'brand' | 'amber' | 'emerald' | 'slate'
+  tone: 'ink' | 'amber' | 'emerald' | 'slate' | 'accent'
 }) {
-  const tones = {
-    brand: 'from-brand-500 to-brand-600',
-    amber: 'from-amber-400 to-amber-500',
-    emerald: 'from-emerald-400 to-emerald-500',
-    slate: 'from-slate-400 to-slate-500',
+  const dot = {
+    ink: 'bg-ink-900',
+    amber: 'bg-amber-400',
+    emerald: 'bg-emerald-500',
+    slate: 'bg-ink-300',
+    accent: 'bg-accent-500',
   }
   return (
-    <div className={`rounded-2xl bg-gradient-to-br ${tones[tone]} p-4 text-white shadow-soft`}>
-      <div className="text-3xl font-bold">{value}</div>
-      <div className="mt-1 text-sm text-white/85">{label}</div>
+    <div className="card px-4 py-3.5">
+      <div className="flex items-center gap-1.5 text-[13px] text-ink-500">
+        <span className={`h-1.5 w-1.5 rounded-full ${dot[tone]}`} />
+        {label}
+      </div>
+      <div className="mt-1.5 text-[28px] font-semibold leading-none tracking-tight text-ink-900 tabular-nums">
+        {value}
+      </div>
     </div>
   )
 }
@@ -433,10 +482,15 @@ function ResourcesTab() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-slate-800">实验室 / 设备管理</h2>
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <p className="eyebrow">Resources</p>
+          <h2 className="mt-1 text-[17px] font-semibold tracking-tight text-ink-900">
+            实验室 / 设备管理
+          </h2>
+        </div>
         <button className="btn-primary" onClick={() => setEditing({ ...EMPTY_RESOURCE })}>
-          + 新增资源
+          <PlusIcon className="h-4 w-4" /> 新增资源
         </button>
       </div>
 
@@ -445,34 +499,38 @@ function ResourcesTab() {
           <div key={r.id} className="card p-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-xl">
-                  {r.kind === 'lab' ? '🎙️' : '🎛️'}
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-ink-100 text-ink-600">
+                  {r.kind === 'lab' ? (
+                    <MicIcon className="h-5 w-5" />
+                  ) : (
+                    <SlidersIcon className="h-5 w-5" />
+                  )}
                 </span>
                 <div>
-                  <div className="font-bold text-slate-800">{r.name}</div>
-                  <div className="text-xs text-slate-400">
+                  <div className="font-semibold tracking-tight text-ink-900">{r.name}</div>
+                  <div className="text-[11px] text-ink-400">
                     {r.kind === 'lab' ? '实验室' : '设备'} · 名额 {r.total_quantity}
                   </div>
                 </div>
               </div>
               {!r.is_active && (
-                <span className="badge bg-slate-100 text-slate-400">已停用</span>
+                <span className="badge bg-ink-100 text-ink-400">已停用</span>
               )}
             </div>
-            <p className="mt-3 line-clamp-2 min-h-[2.5rem] text-sm text-slate-500">
+            <p className="mt-3 line-clamp-2 min-h-[2.5rem] text-[13px] leading-relaxed text-ink-500">
               {r.description || '暂无描述'}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <div className="mt-3 flex flex-wrap gap-2">
               {!r.individual_bookable && (
-                <span className="badge bg-amber-50 text-amber-600">个人不可预约</span>
+                <span className="badge bg-amber-50 text-amber-700">个人不可预约</span>
               )}
-              <span className="badge bg-slate-50 text-slate-500">排序 {r.sort_order}</span>
+              <span className="badge bg-ink-50 text-ink-500">排序 {r.sort_order}</span>
             </div>
             <div className="mt-4 flex gap-2">
-              <button className="btn-ghost flex-1 !py-2 text-sm" onClick={() => setEditing(r)}>
+              <button className="btn-ghost flex-1 !py-2 text-[13px]" onClick={() => setEditing(r)}>
                 编辑
               </button>
-              <button className="btn-danger !py-2 text-sm" onClick={() => remove(r.id)}>
+              <button className="btn-danger !py-2 text-[13px]" onClick={() => remove(r.id)}>
                 删除
               </button>
             </div>
@@ -481,7 +539,11 @@ function ResourcesTab() {
       </div>
 
       {editing && (
-        <Modal title={editing.id ? '编辑资源' : '新增资源'} onClose={() => setEditing(null)} onSave={save}>
+        <Modal
+          title={editing.id ? '编辑资源' : '新增资源'}
+          onClose={() => setEditing(null)}
+          onSave={save}
+        >
           <div className="grid grid-cols-2 gap-4">
             <label className="col-span-2 block">
               <span className="label">名称</span>
@@ -541,19 +603,19 @@ function ResourcesTab() {
               />
             </label>
             <div className="flex flex-col gap-3 pt-7">
-              <label className="flex items-center gap-2 text-sm text-slate-600">
+              <label className="flex items-center gap-2 text-[13px] text-ink-600">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-slate-300"
+                  className="h-4 w-4 rounded border-ink-300 text-ink-900 focus:ring-ink-900/20"
                   checked={editing.individual_bookable ?? true}
                   onChange={(e) => setEditing({ ...editing, individual_bookable: e.target.checked })}
                 />
                 允许个人预约
               </label>
-              <label className="flex items-center gap-2 text-sm text-slate-600">
+              <label className="flex items-center gap-2 text-[13px] text-ink-600">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-slate-300"
+                  className="h-4 w-4 rounded border-ink-300 text-ink-900 focus:ring-ink-900/20"
                   checked={editing.is_active ?? true}
                   onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
                 />
@@ -603,10 +665,13 @@ function SlotsTab() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-slate-800">时间段管理</h2>
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <p className="eyebrow">Time Slots</p>
+          <h2 className="mt-1 text-[17px] font-semibold tracking-tight text-ink-900">时间段管理</h2>
+        </div>
         <button className="btn-primary" onClick={() => setEditing({ ...EMPTY_SLOT })}>
-          + 新增时间段
+          <PlusIcon className="h-4 w-4" /> 新增时间段
         </button>
       </div>
 
@@ -614,19 +679,19 @@ function SlotsTab() {
         {slots.map((s) => (
           <div key={s.id} className="card p-5">
             <div className="flex items-center justify-between">
-              <div className="text-lg font-bold text-slate-800">{s.name}</div>
-              {!s.is_active && <span className="badge bg-slate-100 text-slate-400">已停用</span>}
+              <div className="text-[15px] font-semibold tracking-tight text-ink-900">{s.name}</div>
+              {!s.is_active && <span className="badge bg-ink-100 text-ink-400">已停用</span>}
             </div>
-            <div className="mt-2 text-2xl font-bold text-brand-500">
+            <div className="mt-2 text-2xl font-semibold tracking-tight text-ink-900 tabular-nums">
               {s.start_time}
-              <span className="mx-1 text-slate-300">–</span>
+              <span className="mx-1.5 text-ink-300">–</span>
               {s.end_time}
             </div>
             <div className="mt-4 flex gap-2">
-              <button className="btn-ghost flex-1 !py-2 text-sm" onClick={() => setEditing(s)}>
+              <button className="btn-ghost flex-1 !py-2 text-[13px]" onClick={() => setEditing(s)}>
                 编辑
               </button>
-              <button className="btn-danger !py-2 text-sm" onClick={() => remove(s.id)}>
+              <button className="btn-danger !py-2 text-[13px]" onClick={() => remove(s.id)}>
                 删除
               </button>
             </div>
@@ -677,10 +742,10 @@ function SlotsTab() {
                 onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) || 0 })}
               />
             </label>
-            <label className="flex items-center gap-2 pt-7 text-sm text-slate-600">
+            <label className="flex items-center gap-2 pt-7 text-[13px] text-ink-600">
               <input
                 type="checkbox"
-                className="h-4 w-4 rounded border-slate-300"
+                className="h-4 w-4 rounded border-ink-300 text-ink-900 focus:ring-ink-900/20"
                 checked={editing.is_active ?? true}
                 onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
               />
@@ -706,18 +771,18 @@ function Modal({
   onSave: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-      <div className="max-h-[92vh] w-full max-w-lg animate-fade-up overflow-y-auto rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-3xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/45 p-0 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4">
+      <div className="max-h-[92vh] w-full max-w-lg animate-fade-up overflow-y-auto rounded-t-3xl bg-white p-6 shadow-pop sm:rounded-2xl">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-bold text-slate-800">{title}</h3>
+          <h3 className="text-lg font-semibold tracking-tight text-ink-900">{title}</h3>
           <button
             onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-full text-slate-400 hover:bg-slate-100"
+            className="grid h-9 w-9 place-items-center rounded-full text-ink-400 transition hover:bg-ink-100 hover:text-ink-700"
           >
-            ✕
+            <CloseIcon className="h-4 w-4" />
           </button>
         </div>
-        <div className="mt-5">{children}</div>
+        <div className="mt-6">{children}</div>
         <div className="mt-6 flex gap-3">
           <button className="btn-ghost flex-1" onClick={onClose}>
             取消
