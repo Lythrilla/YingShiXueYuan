@@ -13,36 +13,51 @@ export default {
         ],
       },
       colors: {
-        // Warm near-black neutral scale — the primary surface/ text language.
+        // Warm sand → espresso neutral scale: the primary surface / text language.
         ink: {
-          50: '#f7f7f8',
-          100: '#ececee',
-          200: '#dcdce0',
-          300: '#bcbcc3',
-          400: '#92929b',
-          500: '#71717a',
-          600: '#52525b',
-          700: '#3f3f46',
-          800: '#27272a',
-          900: '#18181b',
-          950: '#101012',
+          50: '#faf7f3',
+          100: '#f3ece4',
+          200: '#e8ddd0',
+          300: '#d6c4b1',
+          400: '#b4a08a',
+          500: '#8d7b67',
+          600: '#6b5b4b',
+          700: '#4f4338',
+          800: '#382f28',
+          900: '#29221d',
+          950: '#1b1612',
         },
-        // Restrained indigo accent, used sparingly for focus / active states.
+        // Warm terracotta / clay accent — inviting, used for primary actions & highlights.
         accent: {
-          50: '#eef1ff',
-          100: '#e0e5ff',
-          200: '#c6cfff',
-          300: '#a3b0fc',
-          400: '#7d88f6',
-          500: '#5b63ec',
-          600: '#4944d6',
-          700: '#3d36b4',
+          50: '#fdf4ef',
+          100: '#fbe6da',
+          200: '#f6cbb4',
+          300: '#efa784',
+          400: '#e6815a',
+          500: '#db6238',
+          600: '#c44d28',
+          700: '#a33d22',
+        },
+        // Soft golden secondary, for subtle warm highlights.
+        gold: {
+          50: '#fdf8ee',
+          100: '#f9edcf',
+          200: '#f1d99c',
+          300: '#e8c069',
+          400: '#dfa63f',
         },
       },
       boxShadow: {
-        card: '0 1px 2px rgba(16, 16, 18, 0.04), 0 1px 3px rgba(16, 16, 18, 0.05)',
-        soft: '0 18px 50px -28px rgba(16, 16, 18, 0.28)',
-        pop: '0 24px 60px -20px rgba(16, 16, 18, 0.35)',
+        card: '0 1px 2px rgba(60, 42, 30, 0.05), 0 6px 16px -10px rgba(60, 42, 30, 0.12)',
+        soft: '0 20px 48px -26px rgba(60, 42, 30, 0.30)',
+        pop: '0 30px 70px -24px rgba(60, 42, 30, 0.38)',
+        glow: '0 14px 32px -12px rgba(219, 98, 56, 0.5)',
+      },
+      backgroundImage: {
+        'warm-hero':
+          'radial-gradient(120% 120% at 100% 0%, #db6238 0%, #c44d28 28%, #7a3a26 60%, #2b1d16 100%)',
+        'warm-page':
+          'linear-gradient(180deg, #fdf6ee 0%, #faf7f3 40%, #faf7f3 100%)',
       },
       keyframes: {
         'fade-up': {
@@ -53,10 +68,15 @@ export default {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
       },
       animation: {
-        'fade-up': 'fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'fade-up': 'fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
         'fade-in': 'fade-in 0.3s ease-out both',
+        float: 'float 9s ease-in-out infinite',
       },
     },
   },

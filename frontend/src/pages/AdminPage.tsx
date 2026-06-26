@@ -54,21 +54,22 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
   }
 
   return (
-    <div className="relative grid min-h-full place-items-center overflow-hidden bg-ink-950 p-4">
+    <div className="relative grid min-h-full place-items-center overflow-hidden bg-warm-hero p-4">
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.06]"
+        className="pointer-events-none absolute inset-0 opacity-[0.10]"
         style={{
           backgroundImage:
-            'linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)',
-          backgroundSize: '46px 46px',
+            'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+          backgroundSize: '26px 26px',
         }}
       />
-      <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent-500/20 blur-3xl" />
+      <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 animate-float rounded-full bg-gold-300/25 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-accent-300/20 blur-3xl" />
       <form
         onSubmit={submit}
-        className="relative w-full max-w-sm animate-fade-up rounded-2xl bg-white p-8 shadow-pop"
+        className="relative w-full max-w-sm animate-fade-up rounded-3xl bg-white/95 p-8 shadow-pop backdrop-blur"
       >
-        <div className="grid h-12 w-12 place-items-center rounded-xl bg-ink-950 text-white">
+        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-accent-400 to-accent-600 text-white shadow-glow">
           <MicIcon className="h-6 w-6" />
         </div>
         <h1 className="mt-5 text-xl font-semibold tracking-tight text-ink-900">预约系统后台</h1>
@@ -131,10 +132,10 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
 
   return (
     <div className="min-h-full">
-      <header className="sticky top-0 z-20 border-b border-ink-200/70 bg-white/85 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-ink-200/70 bg-ink-50/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-ink-950 text-white">
+            <span className="grid h-9 w-9 place-items-center rounded-2xl bg-gradient-to-br from-accent-400 to-accent-600 text-white shadow-glow">
               <MicIcon className="h-[18px] w-[18px]" />
             </span>
             <div>
@@ -156,14 +157,14 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       </header>
 
       <div className="mx-auto max-w-6xl px-5 py-7">
-        <nav className="mb-7 inline-flex gap-1 rounded-xl bg-ink-100/70 p-1">
+        <nav className="mb-7 inline-flex gap-1 rounded-full bg-ink-100/70 p-1 ring-1 ring-ink-200/50">
           {TABS.map(([key, label]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`rounded-lg px-3.5 py-1.5 text-[13px] font-medium tracking-tight transition ${
+              className={`rounded-full px-4 py-1.5 text-[13px] font-medium tracking-tight transition ${
                 tab === key
-                  ? 'bg-white text-ink-900 shadow-card'
+                  ? 'bg-gradient-to-br from-accent-400 to-accent-600 text-white shadow-glow'
                   : 'text-ink-500 hover:text-ink-800'
               }`}
             >
@@ -499,7 +500,7 @@ function ResourcesTab() {
           <div key={r.id} className="card p-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-ink-100 text-ink-600">
+                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-accent-100 to-gold-100 text-accent-600 ring-1 ring-accent-200/50">
                   {r.kind === 'lab' ? (
                     <MicIcon className="h-5 w-5" />
                   ) : (

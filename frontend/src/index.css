@@ -16,43 +16,45 @@ body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f7f7f8;
-  color: #18181b;
+  background-color: #faf7f3;
+  background-image: linear-gradient(180deg, #fdf6ee 0%, #faf7f3 38%, #faf7f3 100%);
+  background-attachment: fixed;
+  color: #29221d;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
 }
 
 @layer base {
   ::selection {
-    background-color: rgba(91, 99, 236, 0.16);
+    background-color: rgba(219, 98, 56, 0.18);
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium tracking-tight transition duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium tracking-tight transition duration-200 disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-ink-950 text-white hover:bg-ink-800 active:scale-[0.99];
+    @apply btn bg-gradient-to-br from-accent-400 to-accent-600 text-white shadow-glow hover:from-accent-500 hover:to-accent-700 active:scale-[0.98];
   }
   .btn-ghost {
-    @apply btn bg-white text-ink-700 ring-1 ring-inset ring-ink-200 hover:bg-ink-50;
+    @apply btn bg-white/80 text-ink-700 ring-1 ring-inset ring-ink-200 hover:bg-white hover:ring-ink-300;
   }
   .btn-danger {
-    @apply btn bg-white text-rose-600 ring-1 ring-inset ring-rose-200 hover:bg-rose-50;
+    @apply btn bg-white/80 text-rose-600 ring-1 ring-inset ring-rose-200 hover:bg-rose-50;
   }
   .input {
-    @apply w-full rounded-lg border border-ink-200 bg-white px-3.5 py-2.5 text-sm text-ink-900 outline-none transition placeholder:text-ink-300 focus:border-ink-400 focus:ring-4 focus:ring-ink-900/5;
+    @apply w-full rounded-2xl border border-ink-200 bg-ink-50/60 px-4 py-2.5 text-sm text-ink-900 outline-none transition placeholder:text-ink-400/70 focus:border-accent-300 focus:bg-white focus:ring-4 focus:ring-accent-500/10;
   }
   .label {
     @apply mb-1.5 block text-[13px] font-medium text-ink-500;
   }
   .card {
-    @apply rounded-2xl bg-white shadow-card ring-1 ring-ink-200/70;
+    @apply rounded-3xl bg-white/90 shadow-card ring-1 ring-ink-200/60 backdrop-blur-sm;
   }
   .badge {
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
   }
   .eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-400;
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-accent-500;
   }
 }
