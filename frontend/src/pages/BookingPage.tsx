@@ -111,7 +111,6 @@ export default function BookingPage() {
           </div>
         )}
 
-        <UsageRules />
       </main>
 
       {selected && (
@@ -144,7 +143,7 @@ function TopNav() {
             <MicIcon className="h-3.5 w-3.5" />
           </span>
           <span className="text-[13px] font-medium tracking-tight text-ink-800">
-            影视学院 · 录音实验室
+            河北科技大学影视学院 · 录音系
           </span>
         </div>
         <Link
@@ -161,7 +160,7 @@ function TopNav() {
 function Hero() {
   return (
     <section className="mx-auto max-w-4xl px-6 pb-16 pt-20 text-center sm:pb-24 sm:pt-28">
-      <p className="eyebrow">Recording Lab · 预约</p>
+      <p className="eyebrow">河北科技大学影视学院 · 录音系</p>
       <h1 className="display mt-5 text-5xl leading-[1.05] sm:text-7xl">
         录音实验室
         <br className="hidden sm:block" />
@@ -535,43 +534,5 @@ function Field({
       </span>
       {children}
     </label>
-  )
-}
-
-function UsageRules() {
-  const rules = [
-    {
-      title: '使用时间',
-      body: '请严格按照预约时间段使用，避免超时影响后续人员。时段已包含设备预热、调试及整理时间。',
-    },
-    {
-      title: '操作规范',
-      body: '使用前请熟悉设备操作规程与安全注意事项，严禁擅自更改设备参数、连接线路或进行非授权操作。',
-    },
-    {
-      title: '记录与清洁',
-      body: '使用后请如实填写设备使用记录，整理麦克风、耳机、线材等设备，关闭电源，保持整洁有序。',
-    },
-  ]
-  return (
-    <section className="mt-24 animate-fade-up border-t border-ink-100 pt-16 sm:mt-32 sm:pt-24">
-      <div className="mb-10 text-center sm:mb-14">
-        <p className="eyebrow">Guidelines</p>
-        <h2 className="display mt-4 text-3xl sm:text-4xl">使用规定</h2>
-      </div>
-      <div className="grid gap-10 sm:grid-cols-3 sm:gap-12">
-        {rules.map((r, i) => (
-          <div key={r.title} className="text-center">
-            <span className="mx-auto grid h-11 w-11 place-items-center rounded-full bg-ink-900 text-sm font-semibold tabular-nums text-white">
-              {String(i + 1).padStart(2, '0')}
-            </span>
-            <h3 className="mt-5 text-base font-semibold text-ink-900">{r.title}</h3>
-            <p className="mx-auto mt-2 max-w-xs text-[13px] leading-relaxed text-ink-500">
-              {r.body}
-            </p>
-          </div>
-        ))}
-      </div>
-    </section>
   )
 }

@@ -64,8 +64,8 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
         <div className="grid h-11 w-11 place-items-center rounded-2xl bg-ink-900 text-white">
           <MicIcon className="h-6 w-6" />
         </div>
-        <h1 className="mt-5 text-xl font-semibold tracking-tight text-ink-900">预约系统后台</h1>
-        <p className="mt-1 text-[13px] text-ink-400">录音实验室管理控制台</p>
+        <h1 className="mt-5 text-xl font-semibold tracking-tight text-ink-900">录音系预约后台</h1>
+        <p className="mt-1 text-[13px] text-ink-400">河北科技大学影视学院录音系</p>
 
         <div className="mt-7 space-y-4">
           <label className="block">
@@ -132,7 +132,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
             </span>
             <div>
               <div className="text-sm font-semibold tracking-tight text-ink-900">
-                录音实验室 · 后台
+                河北科技大学影视学院录音系 · 后台
               </div>
               <div className="text-[11px] text-ink-400">预约管理控制台</div>
             </div>
