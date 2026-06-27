@@ -566,13 +566,19 @@ class _BookingsTabState extends State<BookingsTab> {
                   ] else
                     const Spacer(),
                   TapScale(
-                    child: _actionButton(
-                      label: '删除',
-                      icon: Icons.delete_outline,
-                      bg: Colors.white,
-                      fg: AppColors.rose600,
-                      border: AppColors.rose200,
+                    child: GestureDetector(
                       onTap: () => _delete(b),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.ink200),
+                        ),
+                        child: const Icon(Icons.delete_outline,
+                            size: 18, color: AppColors.ink400),
+                      ),
                     ),
                   ),
                 ]),
