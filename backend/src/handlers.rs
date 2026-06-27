@@ -1,8 +1,11 @@
 use std::collections::HashMap;
+use std::fs;
 use std::sync::{Arc, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use axum::{
-    extract::{Path, Query, State},
+    body::Body,
+    extract::{Multipart, Path, Query, State},
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     Json,
@@ -15,6 +18,8 @@ use crate::db::{self, BookingFilter};
 use crate::error::{ApiError, ApiResult};
 use crate::models::*;
 use crate::{auth, excel};
+
+const MAX_IMAGE_UPLOAD_BYTES: usize = 5 * 1024 * 1024;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -174,6 +179,138 @@ pub async fn delete_resource(
     db::get_resource(&conn, id)?.ok_or_else(|| ApiError::not_found("资源不存在"))?;
     db::delete_resource(&conn, id)?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn upload_image(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    mut multipart: Multipart,
+) -> ApiResult<Json<ImageUploadOut>> {
+    st.require_admin(&headers)?;
+
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|_| ApiError::bad_request("无法读取上传文件"))?
+    {
+        if field.name() != Some("image") {
+            continue;
+        }
+
+        let content_type = field.content_type().map(str::to_string);
+        let file_name = field.file_name().map(str::to_string);
+        let ext = image_extension(content_type.as_deref(), file_name.as_deref())
+            .ok_or_else(|| ApiError::bad_request("仅支持 PNG、JPG、WebP 或 GIF 图片"))?;
+        let bytes = field
+            .bytes()
+            .await
+            .map_err(|_| ApiError::bad_request("无法读取上传文件"))?;
+        if bytes.is_empty() {
+            return Err(ApiError::bad_request("图片文件不能为空"));
+        }
+        if bytes.len() > MAX_IMAGE_UPLOAD_BYTES {
+            return Err(ApiError::new(
+                StatusCode::PAYLOAD_TOO_LARGE,
+                "图片不能超过 5MB",
+            ));
+        }
+        if !image_bytes_match(ext, &bytes) {
+            return Err(ApiError::bad_request("图片内容与文件格式不匹配"));
+        }
+
+        let upload_dir = st.config.data_dir.join("uploads").join("images");
+        fs::create_dir_all(&upload_dir).map_err(|e| {
+            ApiError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("创建上传目录失败：{e}"),
+            )
+        })?;
+        let filename = format!("resource-{}.{}", upload_stamp(), ext);
+        fs::write(upload_dir.join(&filename), &bytes).map_err(|e| {
+            ApiError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("保存图片失败：{e}"),
+            )
+        })?;
+
+        return Ok(Json(ImageUploadOut {
+            url: format!("/uploads/images/{filename}"),
+        }));
+    }
+
+    Err(ApiError::bad_request("请选择要上传的图片"))
+}
+
+pub async fn uploaded_image(
+    State(st): State<AppState>,
+    Path(filename): Path<String>,
+) -> ApiResult<Response> {
+    if !safe_filename(&filename) {
+        return Err(ApiError::not_found("图片不存在"));
+    }
+    let path = st
+        .config
+        .data_dir
+        .join("uploads")
+        .join("images")
+        .join(&filename);
+    let body = fs::read(&path).map_err(|_| ApiError::not_found("图片不存在"))?;
+    let mime = mime_guess::from_path(&path).first_or_octet_stream();
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, mime.as_ref())
+        .body(Body::from(body))
+        .map_err(|e| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+}
+
+fn image_extension(content_type: Option<&str>, file_name: Option<&str>) -> Option<&'static str> {
+    let from_name = file_name
+        .and_then(|name| {
+            name.rsplit_once('.')
+                .map(|(_, ext)| ext.to_ascii_lowercase())
+        })
+        .and_then(|ext| match ext.as_str() {
+            "jpg" | "jpeg" => Some("jpg"),
+            "png" => Some("png"),
+            "webp" => Some("webp"),
+            "gif" => Some("gif"),
+            _ => None,
+        });
+    if from_name.is_some() {
+        return from_name;
+    }
+    match content_type {
+        Some("image/jpeg") => Some("jpg"),
+        Some("image/png") => Some("png"),
+        Some("image/webp") => Some("webp"),
+        Some("image/gif") => Some("gif"),
+        _ => None,
+    }
+}
+
+fn upload_stamp() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or_default()
+}
+
+fn image_bytes_match(ext: &str, bytes: &[u8]) -> bool {
+    match ext {
+        "jpg" => bytes.starts_with(&[0xff, 0xd8, 0xff]),
+        "png" => bytes.starts_with(b"\x89PNG\r\n\x1a\n"),
+        "gif" => bytes.starts_with(b"GIF87a") || bytes.starts_with(b"GIF89a"),
+        "webp" => bytes.len() >= 12 && bytes.starts_with(b"RIFF") && &bytes[8..12] == b"WEBP",
+        _ => false,
+    }
+}
+
+fn safe_filename(filename: &str) -> bool {
+    !filename.is_empty()
+        && !filename.contains("..")
+        && filename
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '_'))
 }
 
 // ---------- Admin: slots ----------
