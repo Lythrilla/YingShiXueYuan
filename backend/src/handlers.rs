@@ -447,8 +447,8 @@ pub async fn verify_booking(
     let conn = st.conn();
     let booking = db::get_booking(&conn, id)?.ok_or_else(|| ApiError::not_found("预约不存在"))?;
     match booking.status.as_str() {
-        "cancelled" => return Err(ApiError::bad_request("已取消的预约不可核销")),
-        "verified" => return Err(ApiError::bad_request("该预约已核销")),
+        "cancelled" => return Err(ApiError::bad_request("已取消的预约不可通过")),
+        "verified" => return Err(ApiError::bad_request("该预约已通过")),
         _ => {}
     }
     Ok(Json(db::set_booking_status(
