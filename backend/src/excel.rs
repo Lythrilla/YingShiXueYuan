@@ -16,7 +16,7 @@ const HEADERS: &[&str] = &[
     "数量(套)",
     "状态",
     "提交时间",
-    "核销时间",
+    "通过时间",
     "录音事项说明",
 ];
 
@@ -26,8 +26,8 @@ const WIDTHS: &[f64] = &[
 
 fn status_label(status: &str) -> &str {
     match status {
-        "booked" => "已预约",
-        "verified" => "已核销",
+        "booked" => "待处理",
+        "verified" => "已通过",
         "cancelled" => "已取消",
         other => other,
     }

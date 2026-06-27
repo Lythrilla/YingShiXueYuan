@@ -414,8 +414,8 @@ function TopNav({ onMine }: { onMine: () => void }) {
 }
 
 const STATUS_META: Record<Booking['status'], { label: string; cls: string }> = {
-  booked: { label: '待核销', cls: 'bg-amber-100 text-amber-700' },
-  verified: { label: '已核销', cls: 'bg-emerald-100 text-emerald-700' },
+  booked: { label: '待处理', cls: 'bg-amber-100 text-amber-700' },
+  verified: { label: '已通过', cls: 'bg-emerald-100 text-emerald-700' },
   cancelled: { label: '已取消', cls: 'bg-ink-100 text-ink-400' },
 }
 
@@ -781,7 +781,7 @@ function BookingModal({
               {resource.name} · {date} · {slot.name}（{slot.start_time}-{slot.end_time}）
             </p>
             <p className="mt-1 text-[13px] text-ink-400">
-              请按预约时段准时到场，使用完成后由管理员核销。
+              请按预约时段准时到场，预约需管理员审核通过。
             </p>
             <button className="btn-primary mt-6 w-full" onClick={onSuccess}>
               完成

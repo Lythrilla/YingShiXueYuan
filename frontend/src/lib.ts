@@ -32,12 +32,12 @@ export const STATUS_META: Record<
   { label: string; className: string; dot: string }
 > = {
   booked: {
-    label: '待核销',
+    label: '待处理',
     className: 'bg-amber-50 text-amber-700',
     dot: 'bg-amber-400',
   },
   verified: {
-    label: '已核销',
+    label: '已通过',
     className: 'bg-emerald-50 text-emerald-700',
     dot: 'bg-emerald-500',
   },

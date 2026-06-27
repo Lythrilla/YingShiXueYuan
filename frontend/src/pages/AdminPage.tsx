@@ -240,8 +240,8 @@ function OverviewTab() {
   }))
 
   const statusSegments = [
-    { label: '待核销', value: stats?.booked ?? 0, color: '#f59e0b' },
-    { label: '已核销', value: stats?.verified ?? 0, color: '#10b981' },
+    { label: '待处理', value: stats?.booked ?? 0, color: '#f59e0b' },
+    { label: '已通过', value: stats?.verified ?? 0, color: '#10b981' },
     { label: '已取消', value: stats?.cancelled ?? 0, color: '#94a3b8' },
   ]
 
@@ -263,8 +263,8 @@ function OverviewTab() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <StatCard label="总预约" value={stats?.total ?? 0} tone="ink" />
-        <StatCard label="待核销" value={stats?.booked ?? 0} tone="amber" />
-        <StatCard label="已核销" value={stats?.verified ?? 0} tone="emerald" />
+        <StatCard label="待处理" value={stats?.booked ?? 0} tone="amber" />
+        <StatCard label="已通过" value={stats?.verified ?? 0} tone="emerald" />
         <StatCard label="已取消" value={stats?.cancelled ?? 0} tone="slate" />
         <StatCard label="今日预约" value={stats?.today ?? 0} tone="accent" />
       </div>
@@ -470,8 +470,8 @@ function BookingsTab() {
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <StatCard label="总预约" value={stats?.total ?? 0} tone="ink" />
-        <StatCard label="待核销" value={stats?.booked ?? 0} tone="amber" />
-        <StatCard label="已核销" value={stats?.verified ?? 0} tone="emerald" />
+        <StatCard label="待处理" value={stats?.booked ?? 0} tone="amber" />
+        <StatCard label="已通过" value={stats?.verified ?? 0} tone="emerald" />
         <StatCard label="已取消" value={stats?.cancelled ?? 0} tone="slate" />
         <StatCard label="今日预约" value={stats?.today ?? 0} tone="accent" />
       </div>
@@ -486,8 +486,8 @@ function BookingsTab() {
               onChange={(e) => setStatus(e.target.value)}
             >
               <option value="">全部</option>
-              <option value="booked">待核销</option>
-              <option value="verified">已核销</option>
+              <option value="booked">待处理</option>
+              <option value="verified">已通过</option>
               <option value="cancelled">已取消</option>
             </select>
           </div>
@@ -597,7 +597,7 @@ function BookingsTab() {
                               className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-100 transition hover:bg-emerald-100"
                               onClick={() => verify(b.id)}
                             >
-                              核销
+                              通过
                             </button>
                             <button
                               className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200 transition hover:bg-rose-50"
@@ -609,7 +609,7 @@ function BookingsTab() {
                         )}
                         {b.status === 'verified' && b.verified_at && (
                           <span className="text-xs text-ink-400">
-                            {formatDateTime(b.verified_at)} 核销
+                            {formatDateTime(b.verified_at)} 通过
                           </span>
                         )}
                         {b.status === 'cancelled' && <span className="text-xs text-ink-300">—</span>}
