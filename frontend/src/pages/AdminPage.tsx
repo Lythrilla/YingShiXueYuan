@@ -447,6 +447,11 @@ function BookingsTab() {
     await api.post(`/admin/bookings/${id}/cancel`)
     load()
   }
+  async function del(id: number) {
+    if (!confirm('确认彻底删除该预约记录？删除后不可恢复。')) return
+    await api.delete(`/admin/bookings/${id}`)
+    load()
+  }
 
   function exportXlsx() {
     const params = new URLSearchParams()
@@ -613,11 +618,16 @@ function BookingsTab() {
                           </>
                         )}
                         {b.status === 'verified' && b.verified_at && (
-                          <span className="text-xs text-ink-400">
+                          <span className="self-center text-xs text-ink-400">
                             {formatDateTime(b.verified_at)} 通过
                           </span>
                         )}
-                        {b.status === 'cancelled' && <span className="text-xs text-ink-300">—</span>}
+                        <button
+                          className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200 transition hover:bg-rose-50"
+                          onClick={() => del(b.id)}
+                        >
+                          删除
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -679,27 +689,36 @@ function BookingsTab() {
                   </div>
                 )}
               </div>
-              {b.status === 'booked' && (
-                <div className="mt-3 flex gap-2 border-t border-ink-100 pt-3">
-                  <button
-                    className="flex-1 rounded-lg bg-emerald-50 py-2 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-100"
-                    onClick={() => verify(b.id)}
-                  >
-                    通过
-                  </button>
-                  <button
-                    className="flex-1 rounded-lg bg-white py-2 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200"
-                    onClick={() => cancel(b.id)}
-                  >
-                    取消
-                  </button>
-                </div>
-              )}
-              {b.status === 'verified' && b.verified_at && (
-                <div className="mt-3 border-t border-ink-100 pt-3 text-xs text-ink-400">
-                  {formatDateTime(b.verified_at)} 通过
-                </div>
-              )}
+              <div className="mt-3 flex gap-2 border-t border-ink-100 pt-3">
+                {b.status === 'booked' && (
+                  <>
+                    <button
+                      className="flex-1 rounded-lg bg-emerald-50 py-2 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-100"
+                      onClick={() => verify(b.id)}
+                    >
+                      通过
+                    </button>
+                    <button
+                      className="flex-1 rounded-lg bg-white py-2 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200"
+                      onClick={() => cancel(b.id)}
+                    >
+                      取消
+                    </button>
+                  </>
+                )}
+                {b.status === 'verified' && b.verified_at && (
+                  <span className="flex-1 self-center text-xs text-ink-400">
+                    {formatDateTime(b.verified_at)} 通过
+                  </span>
+                )}
+                {b.status === 'cancelled' && <span className="flex-1" />}
+                <button
+                  className="rounded-lg bg-white px-3 py-2 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200"
+                  onClick={() => del(b.id)}
+                >
+                  删除
+                </button>
+              </div>
             </div>
           )
         })}

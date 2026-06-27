@@ -589,6 +589,28 @@ pub async fn cancel_booking(
     Ok(Json(updated))
 }
 
+/// 彻底删除预约记录（不可恢复，区别于「取消」）。
+pub async fn delete_booking(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<i64>,
+) -> ApiResult<StatusCode> {
+    let actor = st.require_admin(&headers)?;
+    let summary = {
+        let conn = st.conn();
+        let booking =
+            db::get_booking(&conn, id)?.ok_or_else(|| ApiError::not_found("预约不存在"))?;
+        db::delete_booking(&conn, id)?;
+        format!(
+            "{} · {} · {} {}",
+            booking.applicant_name, booking.resource.name, booking.date, booking.slot.name
+        )
+    };
+    st.log(&actor, "booking.delete", &format!("booking:{id}"), &summary);
+    st.publish("update");
+    Ok(StatusCode::NO_CONTENT)
+}
+
 /// 批量审批 / 取消。返回成功处理的数量，逐条跳过非法状态。
 pub async fn batch_bookings(
     State(st): State<AppState>,
@@ -597,6 +619,27 @@ pub async fn batch_bookings(
     Json(payload): Json<BatchAction>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let actor = st.require_admin(&headers)?;
+    if op == "delete" {
+        let mut deleted = 0i64;
+        {
+            let conn = st.conn();
+            for id in &payload.ids {
+                if db::get_booking(&conn, *id)?.is_none() {
+                    continue;
+                }
+                db::delete_booking(&conn, *id)?;
+                deleted += 1;
+            }
+        }
+        st.log(
+            &actor,
+            "booking.batch_delete",
+            &format!("count:{deleted}"),
+            &payload.note,
+        );
+        st.publish("update");
+        return Ok(Json(json!({ "processed": deleted })));
+    }
     let target_status = match op.as_str() {
         "verify" => "verified",
         "cancel" => "cancelled",

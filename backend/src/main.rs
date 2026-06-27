@@ -81,6 +81,10 @@ async fn main() {
             post(handlers::cancel_booking),
         )
         .route(
+            "/api/admin/bookings/:id",
+            delete(handlers::delete_booking),
+        )
+        .route(
             "/api/admin/batch-bookings/:op",
             post(handlers::batch_bookings),
         )

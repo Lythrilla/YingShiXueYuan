@@ -150,7 +150,15 @@ class ApiClient {
     _decode(r);
   }
 
-  /// 批量操作：op = 'verify' | 'cancel'。返回成功处理的条数。
+  /// 彻底删除预约记录（不可恢复，区别于 cancel）。
+  Future<void> deleteBooking(int id) async {
+    final r = await http
+        .delete(_uri('/api/admin/bookings/$id'), headers: _headers)
+        .timeout(_timeout);
+    _decode(r);
+  }
+
+  /// 批量操作：op = 'verify' | 'cancel' | 'delete'。返回成功处理的条数。
   Future<int> batch(String op, List<int> ids, {String note = ''}) async {
     final r = await http
         .post(_uri('/api/admin/batch-bookings/$op'),
