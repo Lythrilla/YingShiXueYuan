@@ -5,6 +5,10 @@
 # Database
 *.db
 
+# Generated runtime config
+/backend/config.toml
+config.toml
+
 # Node
 node_modules/
 dist/
