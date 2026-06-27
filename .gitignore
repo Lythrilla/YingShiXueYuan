@@ -1,14 +1,9 @@
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-*.egg-info/
-.pytest_cache/
-.ruff_cache/
+# Rust
+/backend/target/
+/backend/data/
 
 # Database
 *.db
-backend/data/*.db
 
 # Node
 node_modules/

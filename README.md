@@ -5,29 +5,43 @@
 
 ## 技术栈
 
-- **后端**：FastAPI + SQLAlchemy（SQLite）+ openpyxl（Excel 导出）
+- **后端**：Rust + axum + rusqlite（内置 SQLite）+ rust_xlsxwriter（Excel 导出）
 - **前端**：React + Vite + TypeScript + Tailwind CSS
+- 前端静态资源在编译期通过 `rust-embed` 嵌入后端二进制，最终产出**单个可执行文件**（Windows `.exe`），双击即用、自带数据库，无需安装 Python / Node 运行时。
 
 ## 目录结构
 
 ```
-backend/    FastAPI 后端 API
+backend/    Rust 后端 API（同时内嵌并托管前端静态页面）
 frontend/   React 前台预约 + 后台管理界面
+scripts/    构建脚本（打包前端 + 交叉编译 .exe）
 ```
 
-## 本地运行
+## 打包成单文件 exe
+
+```bash
+# 在 Linux 上交叉编译（需先安装下列依赖）
+rustup target add x86_64-pc-windows-gnu
+sudo apt-get install -y gcc-mingw-w64-x86-64
+
+./scripts/build-exe.sh        # 产物：dist/录音实验室预约系统.exe
+```
+
+双击 exe 即启动服务并自动打开浏览器（`http://127.0.0.1:8010`），前台、后台与 `/api` 共用同一端口。数据库自动建在 exe 同级的 `data/booking.db`。
+
+> 在 Windows 上本机构建只需 `cd backend && cargo build --release`（构建前先执行一次前端 `npm run build`）。
+
+## 本地开发
 
 ### 后端
 
 ```bash
-cd backend
-uv venv && uv pip install -e .        # 或 python -m venv .venv && pip install -e .
-.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8010
+cd frontend && npm install && npm run build   # 先生成 frontend/dist 供后端嵌入
+cd ../backend
+cargo run                                     # 监听 http://127.0.0.1:8010
 ```
 
 首次启动会自动建表并写入默认实验室、设备与时间段数据（数据库位于 `backend/data/booking.db`）。
-
-API 文档：http://127.0.0.1:8010/docs
 
 ### 前端
 
@@ -62,5 +76,11 @@ npm run dev      # http://localhost:5173
 | --- | --- | --- |
 | `ADMIN_USERNAME` | 管理员用户名 | `admin` |
 | `ADMIN_PASSWORD` | 管理员密码 | `admin123` |
-| `SECRET_KEY` | 令牌签名密钥 | 内置开发密钥 |
-| `BOOKING_WINDOW_DAYS` | 可提前预约天数 | `7` |
+| `SECRET_KEY` | 令牌签名密钥（HMAC-SHA256） | 内置开发密钥 |
+| `TOKEN_MAX_AGE` | 登录令牌有效期（秒） | `43200`（12 小时） |
+| `HOST` | 监听地址 | `127.0.0.1` |
+| `PORT` | 监听端口 | `8010` |
+| `DATA_DIR` | 数据库所在目录 | exe 同级 `data/` |
+| `NO_OPEN` | 设为任意值则启动时不自动打开浏览器 | 未设置 |
+
+前端可提前预约天数由 `frontend/src/lib.ts` 中的 `BOOKING_WINDOW_DAYS` 控制（默认 `7`）。
