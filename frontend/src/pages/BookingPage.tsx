@@ -260,39 +260,44 @@ function ResourceCard({
 }) {
   const bookable = resource.individual_bookable
   return (
-    <div className="card p-3 transition duration-150 hover:border-ink-300 hover:shadow-soft">
-      <div className="flex gap-3">
-        <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-ink-100 ring-1 ring-inset ring-ink-200">
-          {resource.image_url ? (
-            <img
-              src={resource.image_url}
-              alt={resource.name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="grid h-full place-items-center bg-ink-100 text-ink-300">
-              {resource.kind === 'lab' ? (
-                <MicIcon className="h-7 w-7" />
-              ) : (
-                <SlidersIcon className="h-7 w-7" />
-              )}
-            </div>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="truncate text-[15px] font-semibold tracking-tight text-ink-950">
-              {resource.name}
-            </h3>
-            <span className="shrink-0 rounded-full bg-ink-50 px-2 py-0.5 text-[11px] font-medium text-ink-500 ring-1 ring-ink-200/70">
-              {resource.total_quantity} 名额
-            </span>
+    <div className="card group overflow-hidden transition duration-150 hover:border-ink-300 hover:shadow-soft">
+      <div className="relative aspect-[16/10] w-full overflow-hidden bg-ink-100">
+        {resource.image_url ? (
+          <img
+            src={resource.image_url}
+            alt={resource.name}
+            loading="lazy"
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+          />
+        ) : (
+          <div className="grid h-full place-items-center text-ink-300">
+            {resource.kind === 'lab' ? (
+              <MicIcon className="h-10 w-10" />
+            ) : (
+              <SlidersIcon className="h-10 w-10" />
+            )}
           </div>
-          <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-ink-500">
-            {resource.description || '暂无描述'}
-          </p>
-        </div>
+        )}
+        <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-medium text-ink-700 ring-1 ring-inset ring-white/50 backdrop-blur-md">
+          {resource.kind === 'lab' ? (
+            <HeadphonesIcon className="h-3 w-3" />
+          ) : (
+            <SlidersIcon className="h-3 w-3" />
+          )}
+          {resource.kind === 'lab' ? '实验室' : '设备'}
+        </span>
+        <span className="absolute right-3 top-3 rounded-full bg-ink-900/55 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-md">
+          {resource.total_quantity} 名额
+        </span>
       </div>
+
+      <div className="p-4">
+        <h3 className="text-[15px] font-semibold tracking-tight text-ink-900">
+          {resource.name}
+        </h3>
+        <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-ink-500">
+          {resource.description || '暂无描述'}
+        </p>
 
       {!bookable ? (
         <div className="mt-3 flex items-center gap-2 rounded-lg bg-ink-50 px-3 py-2 text-[13px] text-ink-400 ring-1 ring-inset ring-ink-200">
@@ -331,6 +336,7 @@ function ResourceCard({
           })}
         </div>
       )}
+      </div>
     </div>
   )
 }
