@@ -48,10 +48,10 @@ export default {
         },
       },
       boxShadow: {
-        card: '0 1px 2px rgba(60, 42, 30, 0.05), 0 6px 16px -10px rgba(60, 42, 30, 0.12)',
-        soft: '0 20px 48px -26px rgba(60, 42, 30, 0.30)',
-        pop: '0 30px 70px -24px rgba(60, 42, 30, 0.38)',
-        glow: '0 14px 32px -12px rgba(219, 98, 56, 0.5)',
+        card: '0 1px 2px rgba(60, 42, 30, 0.04), 0 8px 20px -18px rgba(60, 42, 30, 0.18)',
+        soft: '0 14px 34px -26px rgba(60, 42, 30, 0.24)',
+        pop: '0 24px 56px -26px rgba(60, 42, 30, 0.30)',
+        glow: '0 10px 24px -16px rgba(219, 98, 56, 0.42)',
       },
       backgroundImage: {
         'warm-hero':
