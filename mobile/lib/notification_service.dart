@@ -38,7 +38,6 @@ class Notifications {
     final android11 = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     if (android11 != null) {
-      await android11.requestNotificationsPermission();
       // 高优先级、带自定义铃声、可触发全屏的提醒通道。
       await android11.createNotificationChannel(const AndroidNotificationChannel(
         alertChannelId,
