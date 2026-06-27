@@ -7,7 +7,7 @@ import {
   type Slot,
 } from '../api'
 import { toDateStr, upcomingDays, WEEKDAYS } from '../lib'
-import { shareApp, useInstallPrompt } from '../pwa'
+import { isIos, isWeChat, shareApp, useInstallPrompt } from '../pwa'
 import {
   CalendarIcon,
   CheckCircleIcon,
@@ -286,31 +286,103 @@ function Toast({ text, onDone }: { text: string; onDone: () => void }) {
 
 function BottomBar({ onToast }: { onToast: (t: string) => void }) {
   const { installed, promptInstall } = useInstallPrompt()
+  const [guide, setGuide] = useState<'share' | 'install' | null>(null)
 
   async function onShare() {
     const r = await shareApp()
-    if (r.status === 'copied') onToast('链接已复制，可粘贴到其他应用分享')
+    if (r.status === 'wechat') setGuide('share')
+    else if (r.status === 'copied') onToast('链接已复制，可粘贴到其他应用分享')
     else if (r.status === 'unavailable') onToast('当前环境不支持分享')
   }
 
   async function onInstall() {
+    if (isWeChat()) {
+      setGuide('install')
+      return
+    }
     const r = await promptInstall()
     if (r === 'unavailable') {
-      onToast('请在浏览器菜单选择「添加到主屏幕 / 安装」')
+      onToast(
+        isIos()
+          ? '请点击底部「分享」图标，选择「添加到主屏幕」'
+          : '请在浏览器菜单选择「添加到主屏幕 / 安装」',
+      )
     }
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-200 bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-2xl items-center gap-2.5 px-4 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))]">
-        <button className="btn-ghost flex-1" onClick={onShare}>
-          <ShareIcon className="h-4 w-4" /> 分享
-        </button>
-        {!installed && (
-          <button className="btn-primary flex-1" onClick={onInstall}>
-            <PhoneAddIcon className="h-4 w-4" /> 加入桌面快捷方式
+    <>
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-200 bg-white/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-2xl items-center gap-2.5 px-4 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))]">
+          <button className="btn-ghost flex-1" onClick={onShare}>
+            <ShareIcon className="h-4 w-4" /> 分享
           </button>
-        )}
+          {!installed && (
+            <button className="btn-primary flex-1" onClick={onInstall}>
+              <PhoneAddIcon className="h-4 w-4" /> 加入桌面快捷方式
+            </button>
+          )}
+        </div>
+      </div>
+      {guide && <WeChatGuide mode={guide} onClose={() => setGuide(null)} />}
+    </>
+  )
+}
+
+/**
+ * WeChat's in-app browser blocks Web Share and PWA install, so we guide the
+ * user to the top-right "···" menu instead.
+ */
+function WeChatGuide({ mode, onClose }: { mode: 'share' | 'install'; onClose: () => void }) {
+  const steps =
+    mode === 'share'
+      ? ['点击右上角的「···」菜单', '选择「发送给朋友」或「分享到朋友圈」']
+      : ['点击右上角的「···」菜单', '选择「在浏览器打开」', '在浏览器中再「添加到主屏幕」']
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-ink-900/70 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="flex justify-end px-5 pt-4 text-white" onClick={(e) => e.stopPropagation()}>
+        <div className="text-right">
+          <div className="text-3xl leading-none">···</div>
+          <div className="mt-1 text-sm">请点这里</div>
+          <div className="ml-auto mt-1 h-10 w-px bg-white/70" />
+        </div>
+      </div>
+      <div
+        className="absolute inset-x-0 bottom-0 rounded-t-3xl bg-white px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mx-auto max-w-md">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-ink-900">
+              {mode === 'share' ? '在微信中分享' : '添加到桌面'}
+            </h3>
+            <button className="text-ink-400" onClick={onClose} aria-label="关闭">
+              <CloseIcon className="h-5 w-5" />
+            </button>
+          </div>
+          <p className="mt-1 text-[13px] text-ink-500">
+            微信浏览器不支持直接{mode === 'share' ? '分享' : '添加桌面'}，请按下面步骤操作：
+          </p>
+          <ol className="mt-4 space-y-3">
+            {steps.map((s, i) => (
+              <li key={i} className="flex items-center gap-3">
+                <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-ink-900 text-xs font-semibold text-white">
+                  {i + 1}
+                </span>
+                <span className="text-sm text-ink-700">{s}</span>
+              </li>
+            ))}
+          </ol>
+          <button className="btn-primary mt-6 w-full" onClick={onClose}>
+            我知道了
+          </button>
+        </div>
       </div>
     </div>
   )
