@@ -12,11 +12,16 @@ class Notifications {
       FlutterLocalNotificationsPlugin();
 
   static const summaryChannelId = 'yingshi_summary';
-  // _v2：声音 / 震动改由 AlertEngine 统一处理（用用户选的铃声、可循环），
-  // 通道本身静音；通道一旦创建声音不可变，故升级时换新 id 并删除旧通道。
-  static const alertChannelId = 'yingshi_alert_v2';
+  // _v3：按声音/震动组合拆通道，既作系统兜底，也避免每轮刷新都响。
+  static const alertChannelId = 'yingshi_alert_v3';
+  static const alertSoundOnlyChannelId = 'yingshi_alert_sound_v3';
+  static const alertVibrationOnlyChannelId = 'yingshi_alert_vibration_v3';
+  static const alertSilentChannelId = 'yingshi_alert_silent_v3';
   static const serviceChannelId = 'yingshi_service';
-  static const doorChannelId = 'yingshi_door_v2';
+  static const doorChannelId = 'yingshi_door_v3';
+  static const doorSoundOnlyChannelId = 'yingshi_door_sound_v3';
+  static const doorVibrationOnlyChannelId = 'yingshi_door_vibration_v3';
+  static const doorSilentChannelId = 'yingshi_door_silent_v3';
 
   static const int summaryNotificationId = 9990;
   static const int bookingIdBase = 100000; // 每条待处理 = base + bookingId
@@ -38,74 +43,190 @@ class Notifications {
       onDidReceiveBackgroundNotificationResponse: _onTapBackground,
     );
 
-    final android11 = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android11 = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android11 != null) {
       // 删除旧的带固定铃声通道，改用静音通道（声音/震动交给 AlertEngine）。
       await android11.deleteNotificationChannel('yingshi_alert');
       await android11.deleteNotificationChannel('yingshi_door');
-      // 高优先级、可触发全屏的提醒通道；通道静音，铃声/震动由 AlertEngine 处理，
-      // 这样才能用用户在设置里选择的系统铃声并循环。
-      await android11.createNotificationChannel(const AndroidNotificationChannel(
-        alertChannelId,
-        '新预约强提醒',
-        description: '有新的待处理预约时的强提醒（全屏）',
-        importance: Importance.max,
-        playSound: false,
-        enableVibration: false,
-        enableLights: true,
-      ));
-      await android11
-          .createNotificationChannel(const AndroidNotificationChannel(
-        summaryChannelId,
-        '待处理汇总',
-        description: '常驻显示当前待处理预约数量',
-        importance: Importance.high,
-      ));
+      await android11.deleteNotificationChannel('yingshi_alert_v2');
+      await android11.deleteNotificationChannel('yingshi_door_v2');
+      await android11.createNotificationChannel(
+        const AndroidNotificationChannel(
+          alertChannelId,
+          '新预约强提醒（响铃+震动）',
+          description: '有新的待处理预约时响铃/震动/全屏提醒',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+          audioAttributesUsage: AudioAttributesUsage.alarm,
+        ),
+      );
+      await android11.createNotificationChannel(
+        const AndroidNotificationChannel(
+          alertSoundOnlyChannelId,
+          '新预约强提醒（响铃）',
+          description: '有新的待处理预约时响铃提醒',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: false,
+          enableLights: true,
+          audioAttributesUsage: AudioAttributesUsage.alarm,
+        ),
+      );
+      await android11.createNotificationChannel(
+        const AndroidNotificationChannel(
+          alertVibrationOnlyChannelId,
+          '新预约强提醒（震动）',
+          description: '有新的待处理预约时震动提醒',
+          importance: Importance.max,
+          playSound: false,
+          enableVibration: true,
+          enableLights: true,
+        ),
+      );
+      await android11.createNotificationChannel(
+        const AndroidNotificationChannel(
+          alertSilentChannelId,
+          '新预约提醒（静音刷新）',
+          description: '刷新待处理预约通知，不重复响铃',
+          importance: Importance.max,
+          playSound: false,
+          enableVibration: false,
+          enableLights: true,
+        ),
+      );
+      await android11.createNotificationChannel(
+        const AndroidNotificationChannel(
+          summaryChannelId,
+          '待处理汇总',
+          description: '常驻显示当前待处理预约数量',
+          importance: Importance.high,
+        ),
+      );
       // 后台前台服务的常驻通知通道（须在服务 startForeground 前创建）。
-      await android11
-          .createNotificationChannel(const AndroidNotificationChannel(
-        serviceChannelId,
-        '后台监控服务',
-        description: '常驻后台监控，定时检查新的待处理预约',
-        importance: Importance.low,
-        playSound: false,
-        enableVibration: false,
-      ));
+      await android11.createNotificationChannel(
+        const AndroidNotificationChannel(
+          serviceChannelId,
+          '后台监控服务',
+          description: '常驻后台监控，定时检查新的待处理预约',
+          importance: Importance.low,
+          playSound: false,
+          enableVibration: false,
+        ),
+      );
       // 开门提醒通道：到点提醒负责人去开门，强提醒（声音 / 震动 / 全屏）。
-      await android11
-          .createNotificationChannel(const AndroidNotificationChannel(
-        doorChannelId,
-        '开门提醒',
-        description: '预约时段临近时提醒负责人去开门',
-        importance: Importance.max,
-        playSound: false,
-        enableVibration: false,
-        enableLights: true,
-      ));
+      await android11.createNotificationChannel(
+        const AndroidNotificationChannel(
+          doorChannelId,
+          '开门提醒（响铃+震动）',
+          description: '预约时段临近时响铃提醒负责人去开门',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+          audioAttributesUsage: AudioAttributesUsage.alarm,
+        ),
+      );
+      await android11.createNotificationChannel(
+        const AndroidNotificationChannel(
+          doorSoundOnlyChannelId,
+          '开门提醒（响铃）',
+          description: '预约时段临近时响铃提醒负责人去开门',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: false,
+          enableLights: true,
+          audioAttributesUsage: AudioAttributesUsage.alarm,
+        ),
+      );
+      await android11.createNotificationChannel(
+        const AndroidNotificationChannel(
+          doorVibrationOnlyChannelId,
+          '开门提醒（震动）',
+          description: '预约时段临近时震动提醒负责人去开门',
+          importance: Importance.max,
+          playSound: false,
+          enableVibration: true,
+          enableLights: true,
+        ),
+      );
+      await android11.createNotificationChannel(
+        const AndroidNotificationChannel(
+          doorSilentChannelId,
+          '开门提醒（静音）',
+          description: '预约时段临近时静音提醒负责人去开门',
+          importance: Importance.max,
+          playSound: false,
+          enableVibration: false,
+          enableLights: true,
+        ),
+      );
     }
     _inited = true;
   }
 
+  static ({String id, String name}) _alertChannel({
+    required bool playSound,
+    required bool vibrate,
+  }) {
+    if (playSound && vibrate) {
+      return (id: alertChannelId, name: '新预约强提醒（响铃+震动）');
+    }
+    if (playSound) {
+      return (id: alertSoundOnlyChannelId, name: '新预约强提醒（响铃）');
+    }
+    if (vibrate) {
+      return (id: alertVibrationOnlyChannelId, name: '新预约强提醒（震动）');
+    }
+    return (id: alertSilentChannelId, name: '新预约提醒（静音刷新）');
+  }
+
+  static ({String id, String name}) _doorChannel({
+    required bool playSound,
+    required bool vibrate,
+  }) {
+    if (playSound && vibrate) {
+      return (id: doorChannelId, name: '开门提醒（响铃+震动）');
+    }
+    if (playSound) {
+      return (id: doorSoundOnlyChannelId, name: '开门提醒（响铃）');
+    }
+    if (vibrate) {
+      return (id: doorVibrationOnlyChannelId, name: '开门提醒（震动）');
+    }
+    return (id: doorSilentChannelId, name: '开门提醒（静音）');
+  }
+
   /// 展示 / 刷新单条待处理预约通知（ongoing = 不可滑动划掉）。
-  static Future<void> showBooking(Booking b,
-      {required bool fullScreen, required bool playSound}) async {
+  static Future<void> showBooking(
+    Booking b, {
+    required bool fullScreen,
+    required bool playSound,
+    required bool vibrate,
+  }) async {
     final actions = <AndroidNotificationAction>[
       AndroidNotificationAction('approve', '通过', showsUserInterface: false),
       AndroidNotificationAction('cancel', '取消', showsUserInterface: false),
     ];
+    final channel = _alertChannel(playSound: playSound, vibrate: vibrate);
     final android = AndroidNotificationDetails(
-      alertChannelId,
-      '新预约强提醒',
+      channel.id,
+      channel.name,
       channelDescription: '有新的待处理预约时的强提醒',
       importance: Importance.max,
       priority: Priority.max,
       ongoing: true, // 不可被滑动清除
       autoCancel: false,
-      playSound: false, // 声音由 AlertEngine 统一播放（用户铃声 + 循环）
+      playSound: playSound,
+      enableVibration: vibrate,
       fullScreenIntent: fullScreen,
       category: AndroidNotificationCategory.alarm,
       visibility: NotificationVisibility.public,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
       actions: actions,
       styleInformation: BigTextStyleInformation(
         '${b.resource.name} · ${b.date} ${b.slot.name} ${b.slot.range}\n'
@@ -130,21 +251,28 @@ class Notifications {
       _plugin.cancel(bookingIdBase + bookingId);
 
   /// 展示「开门提醒」强提醒（区别于审批提醒：标题、通道、payload 都不同）。
-  static Future<void> showDoorReminder(DoorReminder r,
-      {required bool fullScreen, required bool playSound}) async {
+  static Future<void> showDoorReminder(
+    DoorReminder r, {
+    required bool fullScreen,
+    required bool playSound,
+    required bool vibrate,
+  }) async {
+    final channel = _doorChannel(playSound: playSound, vibrate: vibrate);
     final android = AndroidNotificationDetails(
-      doorChannelId,
-      '开门提醒',
+      channel.id,
+      channel.name,
       channelDescription: '预约时段临近时提醒负责人去开门',
       importance: Importance.max,
       priority: Priority.max,
       ongoing: false,
       autoCancel: true,
-      playSound: false, // 声音由 AlertEngine 统一播放（用户铃声 + 循环）
+      playSound: playSound,
+      enableVibration: vibrate,
       fullScreenIntent: fullScreen,
       category: AndroidNotificationCategory.alarm,
       visibility: NotificationVisibility.public,
       color: const Color(0xFFDB6238),
+      audioAttributesUsage: AudioAttributesUsage.alarm,
       styleInformation: BigTextStyleInformation(
         '${r.date} ${r.slot}（${r.startTime} 开始）\n'
         '申请人 ${r.applicant} · 负责人 ${r.dutyLabel}',
@@ -214,7 +342,8 @@ class Notifications {
         await api.cancel(id);
       }
       await cancelBooking(id);
-      final seen = await Store.seenPendingIds()..remove(id);
+      final seen = await Store.seenPendingIds()
+        ..remove(id);
       await Store.setSeenPendingIds(seen);
     } catch (e) {
       debugPrint('notification action failed: $e');

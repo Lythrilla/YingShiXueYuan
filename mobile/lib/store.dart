@@ -71,9 +71,9 @@ class Store {
       (await _prefs()).setBool(_kAlertFullscreen, v);
 
   /// 是否「不处理就一直响」——每个轮询周期只要有待处理就重复提醒。
-  /// 默认关闭：每条新预约只提醒一声，避免持续响铃打扰。
+  /// 默认开启：后台管理端必须强提醒，直到预约被处理才停止。
   static Future<bool> alertRelentless() async =>
-      (await _prefs()).getBool(_kAlertRelentless) ?? false;
+      (await _prefs()).getBool(_kAlertRelentless) ?? true;
   static Future<void> setAlertRelentless(bool v) async =>
       (await _prefs()).setBool(_kAlertRelentless, v);
 
@@ -104,8 +104,10 @@ class Store {
   }
 
   static Future<void> setSeenPendingIds(Set<int> ids) async {
-    await (await _prefs())
-        .setStringList(_kSeenPendingIds, ids.map((e) => e.toString()).toList());
+    await (await _prefs()).setStringList(
+      _kSeenPendingIds,
+      ids.map((e) => e.toString()).toList(),
+    );
   }
 
   // ---------- 开门提醒去重：已提醒过的预约 ID ----------
@@ -125,10 +127,13 @@ class Store {
     set.add(bookingId);
     // 仅保留最近 200 条，避免无限增长。
     final trimmed = set.toList()..sort();
-    final keep =
-        trimmed.length > 200 ? trimmed.sublist(trimmed.length - 200) : trimmed;
+    final keep = trimmed.length > 200
+        ? trimmed.sublist(trimmed.length - 200)
+        : trimmed;
     await p.setStringList(
-        _kRemindedDoorIds, keep.map((e) => e.toString()).toList());
+      _kRemindedDoorIds,
+      keep.map((e) => e.toString()).toList(),
+    );
     return true;
   }
 }

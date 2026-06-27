@@ -107,7 +107,9 @@ Future<void> onStart(ServiceInstance service) async {
 /// 处理 SSE 推送：审批类事件触发即时刷新；开门提醒触发强提醒。
 @pragma('vm:entry-point')
 Future<void> _onSseEvent(
-    ServiceInstance service, Map<String, dynamic> data) async {
+  ServiceInstance service,
+  Map<String, dynamic> data,
+) async {
   final type = (data['type'] ?? '') as String;
   if (type == 'door_reminder') {
     await _handleDoorReminder(service, data);
@@ -120,17 +122,22 @@ Future<void> _onSseEvent(
 /// 开门提醒：到点推送强提醒给负责人（区别于审批提醒）。
 @pragma('vm:entry-point')
 Future<void> _handleDoorReminder(
-    ServiceInstance service, Map<String, dynamic> data) async {
+  ServiceInstance service,
+  Map<String, dynamic> data,
+) async {
   try {
     final reminder = DoorReminder.fromJson(data);
     // 同一条预约只提醒一次。
     final fresh = await Store.markDoorReminded(reminder.bookingId);
     if (!fresh) return;
     final fullscreen = await Store.alertFullscreen();
+    final sound = await Store.alertSound();
+    final vibration = await Store.alertVibration();
     await Notifications.showDoorReminder(
       reminder,
       fullScreen: fullscreen,
-      playSound: false,
+      playSound: sound,
+      vibrate: vibration,
     );
     await AlertEngine.fire();
     service.invoke('door', data);
@@ -166,13 +173,19 @@ Future<void> _poll(ServiceInstance service) async {
 
     final relentless = await Store.alertRelentless();
     final fullscreen = await Store.alertFullscreen();
+    final sound = await Store.alertSound();
+    final vibration = await Store.alertVibration();
+    final firstPendingId = pending.isEmpty ? null : pending.first.id;
 
     // 每轮都重新展示（ongoing 通知不可划掉；万一被系统清掉也会重新出现）。
     for (final b in pending) {
+      final shouldAlert =
+          newIds.contains(b.id) || (relentless && b.id == firstPendingId);
       await Notifications.showBooking(
         b,
         fullScreen: fullscreen && newIds.contains(b.id),
-        playSound: false, // 声音交给 AlertEngine 统一处理
+        playSound: sound && shouldAlert,
+        vibrate: vibration && shouldAlert,
       );
     }
     // 已处理 / 已消失的，撤掉通知。
@@ -194,9 +207,7 @@ Future<void> _poll(ServiceInstance service) async {
         title: pendingIds.isEmpty
             ? '录音预约 · 监控中'
             : '${pendingIds.length} 条预约待处理',
-        content: pendingIds.isEmpty
-            ? '实时监控中，暂无待处理预约'
-            : '处理后提醒才会消失',
+        content: pendingIds.isEmpty ? '实时监控中，暂无待处理预约' : '处理后提醒才会消失',
       );
     }
 
