@@ -1,0 +1,93 @@
+name: Build Mobile App
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/build-mobile.yml"
+  pull_request:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/build-mobile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        working-directory: mobile
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: mobile
+        run: flutter analyze
+
+      - name: Build APK (release)
+        working-directory: mobile
+        run: flutter build apk --release
+
+      - name: Rename artifact
+        working-directory: mobile
+        run: |
+          mkdir -p ../dist
+          cp build/app/outputs/flutter-apk/app-release.apk "../dist/录音预约后台.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yingshi-admin-android
+          path: dist/录音预约后台.apk
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/录音预约后台.apk
+
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        working-directory: mobile
+        run: flutter pub get
+
+      # 未配置签名证书，仅做未签名构建以验证 iOS 可编译。
+      - name: Build iOS (no codesign)
+        working-directory: mobile
+        run: flutter build ios --release --no-codesign
+
+      - name: Package unsigned .app
+        working-directory: mobile
+        run: |
+          mkdir -p ../dist
+          cd build/ios/iphoneos
+          zip -r -q "../../../../dist/录音预约后台-ios-unsigned.zip" Runner.app
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yingshi-admin-ios-unsigned
+          path: dist/录音预约后台-ios-unsigned.zip
