@@ -14,6 +14,12 @@ pub struct Config {
     pub data_dir: PathBuf,
     pub db_path: PathBuf,
     pub open_browser: bool,
+    /// 开门提醒：提前多少分钟提醒负责人。
+    pub reminder_lead_minutes: i64,
+    /// 开门提醒所用时区相对 UTC 的小时偏移（中国为 +8）。
+    pub tz_offset_hours: i64,
+    /// 是否启用开门提醒。
+    pub reminder_enabled: bool,
 }
 
 /// 配置文件（config.toml）中可选字段。缺省字段使用内置默认值。
@@ -26,6 +32,9 @@ struct FileConfig {
     host: Option<String>,
     port: Option<u16>,
     open_browser: Option<bool>,
+    reminder_lead_minutes: Option<i64>,
+    tz_offset_hours: Option<i64>,
+    reminder_enabled: Option<bool>,
 }
 
 const DEFAULT_ADMIN_USERNAME: &str = "admin";
@@ -34,6 +43,8 @@ const DEFAULT_SECRET_KEY: &str = "yingshi-recording-lab-secret-key-change-me";
 const DEFAULT_TOKEN_MAX_AGE: i64 = 60 * 60 * 12;
 const DEFAULT_HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 8010;
+const DEFAULT_REMINDER_LEAD_MINUTES: i64 = 10;
+const DEFAULT_TZ_OFFSET_HOURS: i64 = 8;
 
 /// 首次运行时写入的配置文件模板（带中文注释，便于直接修改）。
 const CONFIG_TEMPLATE: &str = r#"# 录音实验室预约系统 配置文件
@@ -54,6 +65,12 @@ host = "127.0.0.1"
 port = 8010
 # 启动时是否自动打开浏览器
 open_browser = true
+# 是否启用「开门提醒」：到预约时间前提醒负责人去开门
+reminder_enabled = true
+# 开门提醒提前量（分钟）
+reminder_lead_minutes = 10
+# 开门提醒计算所用时区（相对 UTC 的小时偏移，中国为 8）
+tz_offset_hours = 8
 "#;
 
 impl Config {
@@ -106,6 +123,21 @@ impl Config {
             } else {
                 file.open_browser.unwrap_or(true)
             },
+            reminder_lead_minutes: env::var("REMINDER_LEAD_MINUTES")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .or(file.reminder_lead_minutes)
+                .unwrap_or(DEFAULT_REMINDER_LEAD_MINUTES),
+            tz_offset_hours: env::var("TZ_OFFSET_HOURS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .or(file.tz_offset_hours)
+                .unwrap_or(DEFAULT_TZ_OFFSET_HOURS),
+            reminder_enabled: env::var("REMINDER_ENABLED")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .or(file.reminder_enabled)
+                .unwrap_or(true),
         }
     }
 }

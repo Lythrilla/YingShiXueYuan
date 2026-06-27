@@ -1,17 +1,22 @@
 use std::collections::HashMap;
 use std::fs;
 use std::sync::{Arc, Mutex};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use axum::{
     body::Body,
     extract::{Multipart, Path, Query, State},
     http::{header, HeaderMap, StatusCode},
-    response::{IntoResponse, Response},
+    response::{
+        sse::{Event, KeepAlive, Sse},
+        IntoResponse, Response,
+    },
     Json,
 };
 use rusqlite::Connection;
 use serde_json::json;
+use tokio::sync::broadcast;
+use tokio_stream::{wrappers::BroadcastStream, StreamExt};
 
 use crate::config::Config;
 use crate::db::{self, BookingFilter};
@@ -25,21 +30,79 @@ const MAX_IMAGE_UPLOAD_BYTES: usize = 5 * 1024 * 1024;
 pub struct AppState {
     pub db: Arc<Mutex<Connection>>,
     pub config: Arc<Config>,
+    /// 实时事件广播（SSE 推送）。
+    pub events: broadcast::Sender<String>,
+    /// 唤醒「开门提醒」调度器重新计算下一个提醒时刻（新预约入库时触发）。
+    pub reminder_wake: Arc<tokio::sync::Notify>,
 }
 
 impl AppState {
-    fn conn(&self) -> std::sync::MutexGuard<'_, Connection> {
+    pub(crate) fn conn(&self) -> std::sync::MutexGuard<'_, Connection> {
         self.db.lock().expect("db mutex poisoned")
     }
 
+    fn verify_bearer(&self, token: &str) -> ApiResult<String> {
+        auth::verify_token(&self.config.secret_key, token, self.config.token_max_age)
+            .map_err(ApiError::unauthorized)
+    }
+
+    /// 校验登录并返回用户名。
     fn require_admin(&self, headers: &HeaderMap) -> ApiResult<String> {
         let token = headers
             .get(header::AUTHORIZATION)
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
             .ok_or_else(|| ApiError::unauthorized("未登录"))?;
-        auth::verify_token(&self.config.secret_key, token, self.config.token_max_age)
-            .map_err(ApiError::unauthorized)
+        self.verify_bearer(token)
+    }
+
+    /// 校验登录并返回 (用户名, 角色)。
+    fn require_admin_full(&self, headers: &HeaderMap) -> ApiResult<(String, String)> {
+        let username = self.require_admin(headers)?;
+        let role = self.role_for(&username);
+        Ok((username, role))
+    }
+
+    /// 仅超级管理员可访问。
+    fn require_super(&self, headers: &HeaderMap) -> ApiResult<String> {
+        let (username, role) = self.require_admin_full(headers)?;
+        if role != "super" {
+            return Err(ApiError::new(StatusCode::FORBIDDEN, "仅超级管理员可执行此操作"));
+        }
+        Ok(username)
+    }
+
+    /// 解析某用户名的角色：配置文件里的内置管理员恒为 super，其余查 admins 表。
+    fn role_for(&self, username: &str) -> String {
+        if username == self.config.admin_username {
+            return "super".to_string();
+        }
+        db::get_admin_by_username(&self.conn(), username)
+            .ok()
+            .flatten()
+            .map(|a| a.role)
+            .unwrap_or_else(|| "staff".to_string())
+    }
+
+    /// 向所有 SSE 订阅者推送一条事件（附带当前待处理数量）。
+    fn publish(&self, event_type: &str) {
+        let pending = db::stats(&self.conn()).map(|s| s.booked).unwrap_or(0);
+        let payload = json!({
+            "type": event_type,
+            "pending": pending,
+            "ts": db::now_iso(),
+        })
+        .to_string();
+        let _ = self.events.send(payload);
+    }
+
+    fn log(&self, actor: &str, action: &str, target: &str, detail: &str) {
+        let _ = db::add_log(&self.conn(), actor, action, target, detail);
+    }
+
+    /// 唤醒开门提醒调度器（有新预约、可能存在更早的提醒时刻时调用）。
+    pub(crate) fn wake_reminder(&self) {
+        self.reminder_wake.notify_one();
     }
 }
 
@@ -124,6 +187,10 @@ pub async fn create_booking(
     }
 
     let booking = db::create_booking(&conn, &payload)?;
+    drop(conn);
+    // 新预约入库后立即推送给所有在线管理端（SSE），并唤醒开门提醒调度器。
+    st.publish("new_booking");
+    st.wake_reminder();
     let mut resp = (StatusCode::CREATED, Json(booking)).into_response();
     resp.headers_mut()
         .insert(header::SET_COOKIE, remember_phone_cookie(payload.phone.trim()));
@@ -135,15 +202,33 @@ pub async fn login(
     State(st): State<AppState>,
     Json(payload): Json<LoginRequest>,
 ) -> ApiResult<Json<TokenOut>> {
-    if payload.username != st.config.admin_username || payload.password != st.config.admin_password
-    {
+    // 1) 内置配置管理员（恒为超级管理员）。
+    let is_config_admin =
+        payload.username == st.config.admin_username && payload.password == st.config.admin_password;
+    // 2) admins 表里的其他管理员（密码经 HMAC 派生存储）。
+    let table_ok = if is_config_admin {
+        false
+    } else {
+        match db::admin_password_hash(&st.conn(), &payload.username)? {
+            Some(hash) => auth::verify_password(&st.config.secret_key, &payload.password, &hash),
+            None => false,
+        }
+    };
+    if !is_config_admin && !table_ok {
         return Err(ApiError::unauthorized("用户名或密码错误"));
     }
+    let role = st.role_for(&payload.username);
     let token = auth::create_token(&st.config.secret_key, &payload.username);
     Ok(Json(TokenOut {
         token,
         username: payload.username,
+        role,
     }))
+}
+
+pub async fn me(State(st): State<AppState>, headers: HeaderMap) -> ApiResult<Json<MeOut>> {
+    let (username, role) = st.require_admin_full(&headers)?;
+    Ok(Json(MeOut { username, role }))
 }
 
 // ---------- Admin: resources ----------
@@ -160,8 +245,9 @@ pub async fn create_resource(
     headers: HeaderMap,
     Json(payload): Json<ResourceCreate>,
 ) -> ApiResult<Response> {
-    st.require_admin(&headers)?;
+    let actor = st.require_admin(&headers)?;
     let resource = db::create_resource(&st.conn(), &payload)?;
+    st.log(&actor, "resource.create", &format!("resource:{}", resource.id), &resource.name);
     Ok((StatusCode::CREATED, Json(resource)).into_response())
 }
 
@@ -171,10 +257,14 @@ pub async fn update_resource(
     Path(id): Path<i64>,
     Json(payload): Json<ResourceUpdate>,
 ) -> ApiResult<Json<Resource>> {
-    st.require_admin(&headers)?;
-    let conn = st.conn();
-    let current = db::get_resource(&conn, id)?.ok_or_else(|| ApiError::not_found("资源不存在"))?;
-    Ok(Json(db::update_resource(&conn, &current, &payload)?))
+    let actor = st.require_admin(&headers)?;
+    let updated = {
+        let conn = st.conn();
+        let current = db::get_resource(&conn, id)?.ok_or_else(|| ApiError::not_found("资源不存在"))?;
+        db::update_resource(&conn, &current, &payload)?
+    };
+    st.log(&actor, "resource.update", &format!("resource:{id}"), &updated.name);
+    Ok(Json(updated))
 }
 
 pub async fn delete_resource(
@@ -182,10 +272,14 @@ pub async fn delete_resource(
     headers: HeaderMap,
     Path(id): Path<i64>,
 ) -> ApiResult<StatusCode> {
-    st.require_admin(&headers)?;
-    let conn = st.conn();
-    db::get_resource(&conn, id)?.ok_or_else(|| ApiError::not_found("资源不存在"))?;
-    db::delete_resource(&conn, id)?;
+    let actor = st.require_admin(&headers)?;
+    let name = {
+        let conn = st.conn();
+        let r = db::get_resource(&conn, id)?.ok_or_else(|| ApiError::not_found("资源不存在"))?;
+        db::delete_resource(&conn, id)?;
+        r.name
+    };
+    st.log(&actor, "resource.delete", &format!("resource:{id}"), &name);
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -335,8 +429,9 @@ pub async fn create_slot(
     headers: HeaderMap,
     Json(payload): Json<SlotCreate>,
 ) -> ApiResult<Response> {
-    st.require_admin(&headers)?;
+    let actor = st.require_admin(&headers)?;
     let slot = db::create_slot(&st.conn(), &payload)?;
+    st.log(&actor, "slot.create", &format!("slot:{}", slot.id), &slot.name);
     Ok((StatusCode::CREATED, Json(slot)).into_response())
 }
 
@@ -346,10 +441,14 @@ pub async fn update_slot(
     Path(id): Path<i64>,
     Json(payload): Json<SlotUpdate>,
 ) -> ApiResult<Json<Slot>> {
-    st.require_admin(&headers)?;
-    let conn = st.conn();
-    let current = db::get_slot(&conn, id)?.ok_or_else(|| ApiError::not_found("时间段不存在"))?;
-    Ok(Json(db::update_slot(&conn, &current, &payload)?))
+    let actor = st.require_admin(&headers)?;
+    let updated = {
+        let conn = st.conn();
+        let current = db::get_slot(&conn, id)?.ok_or_else(|| ApiError::not_found("时间段不存在"))?;
+        db::update_slot(&conn, &current, &payload)?
+    };
+    st.log(&actor, "slot.update", &format!("slot:{id}"), &updated.name);
+    Ok(Json(updated))
 }
 
 pub async fn delete_slot(
@@ -357,10 +456,14 @@ pub async fn delete_slot(
     headers: HeaderMap,
     Path(id): Path<i64>,
 ) -> ApiResult<StatusCode> {
-    st.require_admin(&headers)?;
-    let conn = st.conn();
-    db::get_slot(&conn, id)?.ok_or_else(|| ApiError::not_found("时间段不存在"))?;
-    db::delete_slot(&conn, id)?;
+    let actor = st.require_admin(&headers)?;
+    let name = {
+        let conn = st.conn();
+        let s = db::get_slot(&conn, id)?.ok_or_else(|| ApiError::not_found("时间段不存在"))?;
+        db::delete_slot(&conn, id)?;
+        s.name
+    };
+    st.log(&actor, "slot.delete", &format!("slot:{id}"), &name);
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -447,37 +550,88 @@ pub async fn verify_booking(
     State(st): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<i64>,
+    Query(q): Query<HashMap<String, String>>,
 ) -> ApiResult<Json<Booking>> {
-    st.require_admin(&headers)?;
-    let conn = st.conn();
-    let booking = db::get_booking(&conn, id)?.ok_or_else(|| ApiError::not_found("预约不存在"))?;
-    match booking.status.as_str() {
-        "cancelled" => return Err(ApiError::bad_request("已取消的预约不可通过")),
-        "verified" => return Err(ApiError::bad_request("该预约已通过")),
-        _ => {}
-    }
-    Ok(Json(db::set_booking_status(
-        &conn,
-        id,
-        "verified",
-        Some(db::now_iso()),
-    )?))
+    let actor = st.require_admin(&headers)?;
+    let note = q.get("note").cloned().unwrap_or_default();
+    let updated = {
+        let conn = st.conn();
+        let booking =
+            db::get_booking(&conn, id)?.ok_or_else(|| ApiError::not_found("预约不存在"))?;
+        match booking.status.as_str() {
+            "cancelled" => return Err(ApiError::bad_request("已取消的预约不可通过")),
+            "verified" => return Err(ApiError::bad_request("该预约已通过")),
+            _ => {}
+        }
+        db::set_booking_status(&conn, id, "verified", Some(db::now_iso()), &note, &actor)?
+    };
+    st.log(&actor, "booking.verify", &format!("booking:{id}"), &note);
+    st.publish("update");
+    Ok(Json(updated))
 }
 
 pub async fn cancel_booking(
     State(st): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<i64>,
+    Query(q): Query<HashMap<String, String>>,
 ) -> ApiResult<Json<Booking>> {
-    st.require_admin(&headers)?;
-    let conn = st.conn();
-    let booking = db::get_booking(&conn, id)?.ok_or_else(|| ApiError::not_found("预约不存在"))?;
-    Ok(Json(db::set_booking_status(
-        &conn,
-        id,
-        "cancelled",
-        booking.verified_at,
-    )?))
+    let actor = st.require_admin(&headers)?;
+    let note = q.get("note").cloned().unwrap_or_default();
+    let updated = {
+        let conn = st.conn();
+        let booking =
+            db::get_booking(&conn, id)?.ok_or_else(|| ApiError::not_found("预约不存在"))?;
+        db::set_booking_status(&conn, id, "cancelled", booking.verified_at, &note, &actor)?
+    };
+    st.log(&actor, "booking.cancel", &format!("booking:{id}"), &note);
+    st.publish("update");
+    Ok(Json(updated))
+}
+
+/// 批量审批 / 取消。返回成功处理的数量，逐条跳过非法状态。
+pub async fn batch_bookings(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(op): Path<String>,
+    Json(payload): Json<BatchAction>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let actor = st.require_admin(&headers)?;
+    let target_status = match op.as_str() {
+        "verify" => "verified",
+        "cancel" => "cancelled",
+        _ => return Err(ApiError::bad_request("不支持的批量操作")),
+    };
+    let mut done = 0i64;
+    {
+        let conn = st.conn();
+        for id in &payload.ids {
+            let Some(booking) = db::get_booking(&conn, *id)? else {
+                continue;
+            };
+            if target_status == "verified" && booking.status != "booked" {
+                continue;
+            }
+            if target_status == "cancelled" && booking.status == "cancelled" {
+                continue;
+            }
+            let verified_at = if target_status == "verified" {
+                Some(db::now_iso())
+            } else {
+                booking.verified_at.clone()
+            };
+            db::set_booking_status(&conn, *id, target_status, verified_at, &payload.note, &actor)?;
+            done += 1;
+        }
+    }
+    st.log(
+        &actor,
+        &format!("booking.batch_{op}"),
+        &format!("count:{done}"),
+        &payload.note,
+    );
+    st.publish("update");
+    Ok(Json(json!({ "processed": done })))
 }
 
 pub async fn stats(
@@ -493,6 +647,199 @@ pub async fn stats(
         "cancelled": s.cancelled,
         "today": s.today,
     })))
+}
+
+pub async fn stats_report(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> ApiResult<Json<StatsReport>> {
+    st.require_admin(&headers)?;
+    Ok(Json(db::stats_report(&st.conn())?))
+}
+
+// ---------- Admin: operation logs ----------
+pub async fn list_logs(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Query(q): Query<HashMap<String, String>>,
+) -> ApiResult<Json<Vec<OperationLog>>> {
+    st.require_admin(&headers)?;
+    let limit = q
+        .get("limit")
+        .and_then(|v| v.parse::<i64>().ok())
+        .unwrap_or(200)
+        .clamp(1, 1000);
+    Ok(Json(db::list_logs(&st.conn(), limit)?))
+}
+
+// ---------- Admin: 多管理员账号 ----------
+pub async fn list_admins(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> ApiResult<Json<Vec<Admin>>> {
+    st.require_super(&headers)?;
+    Ok(Json(db::list_admins(&st.conn())?))
+}
+
+pub async fn create_admin(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(payload): Json<AdminCreate>,
+) -> ApiResult<Response> {
+    let actor = st.require_super(&headers)?;
+    let username = payload.username.trim().to_string();
+    if username.is_empty() || payload.password.len() < 4 {
+        return Err(ApiError::bad_request("用户名不能为空，密码至少 4 位"));
+    }
+    if username == st.config.admin_username {
+        return Err(ApiError::conflict("该用户名为内置管理员，不能重复创建"));
+    }
+    let role = if payload.role == "super" { "super" } else { "staff" };
+    let hash = auth::hash_password(&st.config.secret_key, &payload.password);
+    let admin = {
+        let conn = st.conn();
+        if db::get_admin_by_username(&conn, &username)?.is_some() {
+            return Err(ApiError::conflict("该用户名已存在"));
+        }
+        db::create_admin(&conn, &username, &hash, role)?
+    };
+    st.log(&actor, "admin.create", &format!("admin:{}", admin.id), &username);
+    Ok((StatusCode::CREATED, Json(admin)).into_response())
+}
+
+pub async fn update_admin(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<i64>,
+    Json(payload): Json<AdminUpdate>,
+) -> ApiResult<Json<Admin>> {
+    let actor = st.require_super(&headers)?;
+    let new_hash = payload
+        .password
+        .as_ref()
+        .filter(|p| !p.is_empty())
+        .map(|p| auth::hash_password(&st.config.secret_key, p));
+    let role = payload
+        .role
+        .as_deref()
+        .map(|r| if r == "super" { "super" } else { "staff" });
+    let updated = {
+        let conn = st.conn();
+        // 防止把最后一个超级管理员降级 / 停用，导致无人可管理。
+        if let Some(existing) = db::list_admins(&conn)?.into_iter().find(|a| a.id == id) {
+            let demoting = role == Some("staff") || payload.is_active == Some(false);
+            if existing.role == "super" && demoting && db::count_super_admins(&conn)? <= 1 {
+                return Err(ApiError::bad_request("至少需要保留一个启用的超级管理员"));
+            }
+        }
+        db::update_admin(
+            &conn,
+            id,
+            new_hash.as_deref(),
+            role,
+            payload.is_active,
+        )?
+        .ok_or_else(|| ApiError::not_found("管理员不存在"))?
+    };
+    st.log(&actor, "admin.update", &format!("admin:{id}"), &updated.username);
+    Ok(Json(updated))
+}
+
+pub async fn delete_admin(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<i64>,
+) -> ApiResult<StatusCode> {
+    let actor = st.require_super(&headers)?;
+    {
+        let conn = st.conn();
+        if let Some(existing) = db::list_admins(&conn)?.into_iter().find(|a| a.id == id) {
+            if existing.role == "super" && db::count_super_admins(&conn)? <= 1 {
+                return Err(ApiError::bad_request("至少需要保留一个启用的超级管理员"));
+            }
+        }
+        db::delete_admin(&conn, id)?;
+    }
+    st.log(&actor, "admin.delete", &format!("admin:{id}"), "");
+    Ok(StatusCode::NO_CONTENT)
+}
+
+// ---------- Admin: 排班（开门负责人） ----------
+pub async fn list_shifts(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+) -> ApiResult<Json<Vec<DutyShift>>> {
+    st.require_admin(&headers)?;
+    Ok(Json(db::list_shifts(&st.conn())?))
+}
+
+pub async fn create_shift(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(payload): Json<DutyShiftCreate>,
+) -> ApiResult<Response> {
+    let actor = st.require_super(&headers)?;
+    let admin_username = payload.admin_username.trim().to_string();
+    if admin_username.is_empty() {
+        return Err(ApiError::bad_request("请指定负责人"));
+    }
+    if !(-1..=6).contains(&payload.weekday) {
+        return Err(ApiError::bad_request("星期取值应为 -1(每天) 或 0~6"));
+    }
+    let shift = db::create_shift(
+        &st.conn(),
+        payload.weekday,
+        payload.slot_id,
+        payload.resource_id,
+        &admin_username,
+    )?;
+    st.log(
+        &actor,
+        "shift.create",
+        &format!("shift:{}", shift.id),
+        &admin_username,
+    );
+    Ok((StatusCode::CREATED, Json(shift)).into_response())
+}
+
+pub async fn delete_shift(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<i64>,
+) -> ApiResult<StatusCode> {
+    let actor = st.require_super(&headers)?;
+    db::delete_shift(&st.conn(), id)?;
+    st.log(&actor, "shift.delete", &format!("shift:{id}"), "");
+    Ok(StatusCode::NO_CONTENT)
+}
+
+// ---------- Admin: 实时推送（SSE） ----------
+pub async fn admin_events(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Query(q): Query<HashMap<String, String>>,
+) -> Response {
+    // EventSource 无法自定义请求头，这里同时支持 Authorization 头与 ?token= 查询参数。
+    let auth_ok = st.require_admin(&headers).is_ok()
+        || q
+            .get("token")
+            .map(|t| st.verify_bearer(t).is_ok())
+            .unwrap_or(false);
+    if !auth_ok {
+        return ApiError::unauthorized("未登录").into_response();
+    }
+    let rx = st.events.subscribe();
+    let stream = BroadcastStream::new(rx).map(|msg| {
+        let data = msg.unwrap_or_else(|_| "{\"type\":\"lagged\"}".to_string());
+        Ok::<_, std::convert::Infallible>(Event::default().data(data))
+    });
+    Sse::new(stream)
+        .keep_alive(
+            KeepAlive::new()
+                .interval(Duration::from_secs(20))
+                .text("ping"),
+        )
+        .into_response()
 }
 
 pub async fn export_bookings(

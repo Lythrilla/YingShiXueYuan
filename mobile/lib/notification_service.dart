@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'api_client.dart';
@@ -13,9 +13,11 @@ class Notifications {
   static const summaryChannelId = 'yingshi_summary';
   static const alertChannelId = 'yingshi_alert';
   static const serviceChannelId = 'yingshi_service';
+  static const doorChannelId = 'yingshi_door';
 
   static const int summaryNotificationId = 9990;
   static const int bookingIdBase = 100000; // 每条待处理 = base + bookingId
+  static const int doorIdBase = 300000; // 每条开门提醒 = base + bookingId
 
   static bool _inited = false;
 
@@ -65,6 +67,18 @@ class Notifications {
         playSound: false,
         enableVibration: false,
       ));
+      // 开门提醒通道：到点提醒负责人去开门，强提醒（声音 / 震动 / 全屏）。
+      await android11
+          .createNotificationChannel(const AndroidNotificationChannel(
+        doorChannelId,
+        '开门提醒',
+        description: '预约时段临近时提醒负责人去开门',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('alarm'),
+        enableVibration: true,
+        enableLights: true,
+      ));
     }
     _inited = true;
   }
@@ -113,6 +127,44 @@ class Notifications {
 
   static Future<void> cancelBooking(int bookingId) =>
       _plugin.cancel(bookingIdBase + bookingId);
+
+  /// 展示「开门提醒」强提醒（区别于审批提醒：标题、通道、payload 都不同）。
+  static Future<void> showDoorReminder(DoorReminder r,
+      {required bool fullScreen, required bool playSound}) async {
+    final android = AndroidNotificationDetails(
+      doorChannelId,
+      '开门提醒',
+      channelDescription: '预约时段临近时提醒负责人去开门',
+      importance: Importance.max,
+      priority: Priority.max,
+      ongoing: false,
+      autoCancel: true,
+      playSound: playSound,
+      sound: playSound
+          ? const RawResourceAndroidNotificationSound('alarm')
+          : null,
+      fullScreenIntent: fullScreen,
+      category: AndroidNotificationCategory.alarm,
+      visibility: NotificationVisibility.public,
+      color: const Color(0xFFDB6238),
+      styleInformation: BigTextStyleInformation(
+        '${r.date} ${r.slot}（${r.startTime} 开始）\n'
+        '申请人 ${r.applicant} · 负责人 ${r.dutyLabel}',
+        contentTitle: r.title,
+      ),
+    );
+    const ios = DarwinNotificationDetails(
+      interruptionLevel: InterruptionLevel.timeSensitive,
+      presentSound: true,
+    );
+    await _plugin.show(
+      doorIdBase + r.bookingId,
+      r.title,
+      r.body,
+      NotificationDetails(android: android, iOS: ios),
+      payload: 'door:${r.bookingId}',
+    );
+  }
 
   /// 汇总通知：常驻显示「X 条待处理」。count=0 时清除。
   static Future<void> showSummary(int count) async {

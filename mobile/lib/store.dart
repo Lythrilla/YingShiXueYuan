@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class Store {
   static const _kToken = 'token';
   static const _kUsername = 'username';
+  static const _kRole = 'role';
 
   static const _kAlertSound = 'alert_sound';
   static const _kAlertVibration = 'alert_vibration';
@@ -43,6 +44,14 @@ class Store {
   static Future<void> setUsername(String v) async =>
       (await _prefs()).setString(_kUsername, v);
 
+  static Future<String> role() async =>
+      (await _prefs()).getString(_kRole) ?? 'staff';
+
+  static Future<void> setRole(String v) async =>
+      (await _prefs()).setString(_kRole, v);
+
+  static Future<bool> isSuper() async => (await role()) == 'super';
+
   // ---------- 提醒偏好 ----------
   static Future<bool> alertSound() async =>
       (await _prefs()).getBool(_kAlertSound) ?? true;
@@ -79,5 +88,29 @@ class Store {
   static Future<void> setSeenPendingIds(Set<int> ids) async {
     await (await _prefs())
         .setStringList(_kSeenPendingIds, ids.map((e) => e.toString()).toList());
+  }
+
+  // ---------- 开门提醒去重：已提醒过的预约 ID ----------
+  static const _kRemindedDoorIds = 'reminded_door_ids';
+
+  static Future<Set<int>> remindedDoorIds() async {
+    final list = (await _prefs()).getStringList(_kRemindedDoorIds) ?? const [];
+    return list.map(int.parse).toSet();
+  }
+
+  static Future<bool> markDoorReminded(int bookingId) async {
+    final p = await _prefs();
+    final set = (p.getStringList(_kRemindedDoorIds) ?? const [])
+        .map(int.parse)
+        .toSet();
+    if (set.contains(bookingId)) return false;
+    set.add(bookingId);
+    // 仅保留最近 200 条，避免无限增长。
+    final trimmed = set.toList()..sort();
+    final keep =
+        trimmed.length > 200 ? trimmed.sublist(trimmed.length - 200) : trimmed;
+    await p.setStringList(
+        _kRemindedDoorIds, keep.map((e) => e.toString()).toList());
+    return true;
   }
 }

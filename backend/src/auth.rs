@@ -42,6 +42,17 @@ pub fn verify_token(secret: &str, token: &str, max_age: i64) -> Result<String, &
     Ok(username.to_string())
 }
 
+/// 用 secret 作为盐，对密码做 HMAC-SHA256 派生，避免明文存库。
+pub fn hash_password(secret: &str, password: &str) -> String {
+    URL_SAFE_NO_PAD.encode(sign(secret, password.as_bytes()))
+}
+
+/// 常量时间比较密码哈希。
+pub fn verify_password(secret: &str, password: &str, hash: &str) -> bool {
+    let expected = hash_password(secret, password);
+    constant_time_eq(expected.as_bytes(), hash.as_bytes())
+}
+
 fn sign(secret: &str, data: &[u8]) -> Vec<u8> {
     let mut mac =
         HmacSha256::new_from_slice(secret.as_bytes()).expect("hmac accepts any key length");

@@ -5,6 +5,7 @@ mod error;
 mod excel;
 mod handlers;
 mod models;
+mod reminder;
 mod seed;
 mod web;
 
@@ -30,10 +31,17 @@ async fn main() {
     });
     db::init_schema(&conn).expect("初始化数据库表失败");
     seed::seed(&conn).expect("写入默认数据失败");
+    // 把配置文件里的内置管理员同步进 admins 表（恒为超级管理员）。
+    let admin_hash = auth::hash_password(&config.secret_key, &config.admin_password);
+    db::upsert_admin(&conn, &config.admin_username, &admin_hash, "super")
+        .expect("初始化内置管理员失败");
 
+    let (events, _) = tokio::sync::broadcast::channel::<String>(256);
     let state = AppState {
         db: Arc::new(Mutex::new(conn)),
         config: Arc::new(config.clone()),
+        events,
+        reminder_wake: Arc::new(tokio::sync::Notify::new()),
     };
 
     let api = Router::new()
@@ -45,6 +53,9 @@ async fn main() {
         .route("/api/my-bookings", get(handlers::my_bookings))
         // admin auth
         .route("/api/admin/login", post(handlers::login))
+        .route("/api/admin/me", get(handlers::me))
+        // 实时推送（SSE）
+        .route("/api/admin/events", get(handlers::admin_events))
         // admin resources
         .route("/api/admin/resources", get(handlers::admin_list_resources))
         .route("/api/admin/resources", post(handlers::create_resource))
@@ -69,8 +80,24 @@ async fn main() {
             "/api/admin/bookings/:id/cancel",
             post(handlers::cancel_booking),
         )
+        .route(
+            "/api/admin/batch-bookings/:op",
+            post(handlers::batch_bookings),
+        )
         .route("/api/admin/stats", get(handlers::stats))
+        .route("/api/admin/stats/report", get(handlers::stats_report))
         .route("/api/admin/export", get(handlers::export_bookings))
+        // admin: 操作日志
+        .route("/api/admin/logs", get(handlers::list_logs))
+        // admin: 多管理员账号
+        .route("/api/admin/admins", get(handlers::list_admins))
+        .route("/api/admin/admins", post(handlers::create_admin))
+        .route("/api/admin/admins/:id", put(handlers::update_admin))
+        .route("/api/admin/admins/:id", delete(handlers::delete_admin))
+        // admin: 排班（开门负责人）
+        .route("/api/admin/shifts", get(handlers::list_shifts))
+        .route("/api/admin/shifts", post(handlers::create_shift))
+        .route("/api/admin/shifts/:id", delete(handlers::delete_shift))
         .route("/uploads/images/:filename", get(handlers::uploaded_image))
         .route("/healthz", get(handlers::healthz));
 
@@ -85,7 +112,10 @@ async fn main() {
                 .allow_methods(Any)
                 .allow_headers(Any),
         )
-        .with_state(state);
+        .with_state(state.clone());
+
+    // 启动常驻「开门提醒」后台任务。
+    tokio::spawn(reminder::run(state));
 
     let addr = format!("{}:{}", config.host, config.port);
     let listener = tokio::net::TcpListener::bind(&addr)
