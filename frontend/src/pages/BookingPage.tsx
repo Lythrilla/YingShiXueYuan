@@ -237,7 +237,7 @@ function RulesModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: ()
           <h3 className="text-base font-semibold text-ink-900">必读须知</h3>
           <p className="mt-0.5 text-[12px] text-ink-400">录音实验室使用规定</p>
         </div>
-        <div className="space-y-4 overflow-y-auto px-5 py-4">
+        <div className="no-scrollbar space-y-4 overflow-y-auto px-5 py-4">
           {RULES.map((r, i) => (
             <div key={r.title}>
               <h4 className="text-[13px] font-semibold text-ink-900">
@@ -487,7 +487,7 @@ function MyBookings({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+        <div className="no-scrollbar flex-1 overflow-y-auto px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           {error && <p className="py-2 text-[13px] text-rose-500">{error}</p>}
           {loading && <p className="py-6 text-center text-sm text-ink-400">查询中…</p>}
           {!loading && bookings && bookings.length === 0 && (
@@ -545,7 +545,7 @@ function TimeSelector({
         <CalendarIcon className="h-4 w-4 text-ink-400" /> 选择时间
       </div>
 
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
         {days.map((d, i) => {
           const ds = toDateStr(d)
           const active = ds === date
@@ -780,7 +780,7 @@ function BookingModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/45 p-0 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4">
-      <div className="max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-2xl bg-white p-4 shadow-pop sm:rounded-xl sm:p-5">
+      <div className="no-scrollbar max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-2xl bg-white p-4 shadow-pop sm:rounded-xl sm:p-5">
         {done ? (
           <div className="py-8 text-center">
             <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
