@@ -14,6 +14,7 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
+use tower_http::compression::CompressionLayer;
 use tower_http::cors::{Any, CorsLayer};
 
 use config::Config;
@@ -77,6 +78,7 @@ async fn main() {
         .merge(api)
         // 其余路径交给嵌入的前端静态资源（含 SPA 回退）
         .fallback(web::static_handler)
+        .layer(CompressionLayer::new())
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
