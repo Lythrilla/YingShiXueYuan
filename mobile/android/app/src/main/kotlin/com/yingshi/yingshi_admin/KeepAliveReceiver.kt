@@ -104,6 +104,19 @@ class KeepAliveReceiver : BroadcastReceiver() {
             }
         }
 
+        fun ensureGuardService(context: Context) {
+            val ctx = context.applicationContext
+            if (isServiceRunning(ctx, KeepAliveService::class.java.name)) return
+            try {
+                ContextCompat.startForegroundService(
+                    ctx,
+                    Intent(ctx, KeepAliveService::class.java)
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
         @Suppress("DEPRECATION")
         private fun isServiceRunning(context: Context, className: String): Boolean {
             val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -115,6 +128,7 @@ class KeepAliveReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
+        ensureGuardService(context)
         ensureBackgroundService(context)
         if (intent?.action != ACTION_KEEP_ALIVE) {
             scheduleFastRecovery(context)

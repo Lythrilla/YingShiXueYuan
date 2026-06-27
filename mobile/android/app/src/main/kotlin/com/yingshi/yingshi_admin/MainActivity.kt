@@ -12,6 +12,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -57,11 +58,12 @@ class MainActivity : FlutterActivity() {
     /// 启动守护服务并排程保活心跳，确保上划清理后台后监控服务仍被持续拉活。
     private fun startKeepAlive() {
         try {
-            startService(Intent(this, KeepAliveService::class.java))
+            ContextCompat.startForegroundService(this, Intent(this, KeepAliveService::class.java))
         } catch (e: Exception) {
             e.printStackTrace()
         }
         KeepAliveReceiver.schedule(applicationContext)
+        KeepAliveReceiver.scheduleJob(applicationContext)
     }
 
     private fun pickRingtone(current: String?, result: MethodChannel.Result) {
