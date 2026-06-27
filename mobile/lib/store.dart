@@ -12,6 +12,8 @@ class Store {
   static const _kAlertFullscreen = 'alert_fullscreen';
   static const _kAlertRelentless = 'alert_relentless';
   static const _kPollSeconds = 'poll_seconds';
+  static const _kRingtoneUri = 'ringtone_uri';
+  static const _kRingtoneTitle = 'ringtone_title';
   static const _kSeenPendingIds = 'seen_pending_ids';
 
   /// 服务器地址写死，用户无需也无法修改。
@@ -78,6 +80,21 @@ class Store {
       (await _prefs()).getInt(_kPollSeconds) ?? 20;
   static Future<void> setPollSeconds(int v) async =>
       (await _prefs()).setInt(_kPollSeconds, v.clamp(10, 600));
+
+  /// 自定义提醒铃声（系统铃声 content:// URI）；为空时用内置 alarm.mp3。
+  static Future<String?> ringtoneUri() async =>
+      (await _prefs()).getString(_kRingtoneUri);
+  static Future<String> ringtoneTitle() async =>
+      (await _prefs()).getString(_kRingtoneTitle) ?? '内置默认铃声';
+  static Future<void> setRingtone(String? uri, String title) async {
+    final p = await _prefs();
+    if (uri == null || uri.isEmpty) {
+      await p.remove(_kRingtoneUri);
+    } else {
+      await p.setString(_kRingtoneUri, uri);
+    }
+    await p.setString(_kRingtoneTitle, title);
+  }
 
   // ---------- 跨 isolate 共享：已提醒过的待处理 ID ----------
   static Future<Set<int>> seenPendingIds() async {
