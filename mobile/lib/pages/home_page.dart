@@ -21,7 +21,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int _index = 0;
   bool _permGranted = true;
   final List<StreamSubscription> _subs = [];
@@ -29,7 +29,8 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    BackgroundPoller.start();
+    WidgetsBinding.instance.addObserver(this);
+    _resumeBackgroundPolling();
     WidgetsBinding.instance.addPostFrameCallback((_) => _ensurePermissions());
     // 后台 isolate 收到 SSE / 轮询事件后会 invoke 这些消息到 UI。
     _subs.add(BackgroundPoller.instance.on('update').listen((_) {
@@ -42,10 +43,29 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     for (final s in _subs) {
       s.cancel();
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _resumeBackgroundPolling();
+    } else if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      BackgroundPoller.start();
+    }
+  }
+
+  Future<void> _resumeBackgroundPolling() async {
+    await BackgroundPoller.start();
+    BackgroundPoller.reconnect();
+    BackgroundPoller.pollNow();
+    bumpRefresh();
   }
 
   Future<void> _ensurePermissions() async {
@@ -53,8 +73,7 @@ class _HomePageState extends State<HomePage> {
     if (granted) {
       await AppPermissions.requestBatteryExemption();
       // 权限到位后立即重连推送并刷新一次，确保马上能收到通知。
-      BackgroundPoller.reconnect();
-      BackgroundPoller.pollNow();
+      await _resumeBackgroundPolling();
     }
     if (mounted) setState(() => _permGranted = granted);
   }

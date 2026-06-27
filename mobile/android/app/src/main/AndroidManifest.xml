@@ -43,7 +43,9 @@
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
             android:foregroundServiceType="dataSync"
-            tools:replace="android:foregroundServiceType" />
+            android:stopWithTask="false"
+            android:exported="false"
+            tools:replace="android:foregroundServiceType,android:stopWithTask,android:exported" />
     </application>
     <queries>
         <intent>
