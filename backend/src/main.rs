@@ -41,6 +41,7 @@ async fn main() {
         .route("/api/slots", get(handlers::list_slots))
         .route("/api/availability/:id", get(handlers::availability))
         .route("/api/bookings", post(handlers::create_booking))
+        .route("/api/my-bookings", get(handlers::my_bookings))
         // admin auth
         .route("/api/admin/login", post(handlers::login))
         // admin resources

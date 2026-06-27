@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   api,
+  type Booking,
   type BookingForm,
+  fetchMyBookings,
   type Resource,
   type ResourceAvailability,
   type Slot,
@@ -94,6 +96,7 @@ export default function BookingPage() {
 
   const [toast, setToast] = useState('')
   const [rulesAck, setRulesAck] = useState(false)
+  const [showMine, setShowMine] = useState(false)
 
   const slot = slots.find((s) => s.id === slotId) ?? null
   const labs = resources.filter((r) => r.kind === 'lab')
@@ -129,7 +132,7 @@ export default function BookingPage() {
 
   return (
     <div className="min-h-full bg-ink-50/50 pb-24">
-      <TopNav />
+      <TopNav onMine={() => setShowMine(true)} />
 
       <main className="mx-auto max-w-2xl px-4 py-4 sm:py-5">
         <PageHead />
@@ -181,6 +184,7 @@ export default function BookingPage() {
       </main>
 
       <BottomBar onToast={setToast} />
+      {showMine && <MyBookings onClose={() => setShowMine(false)} />}
       {toast && <Toast text={toast} onDone={() => setToast('')} />}
 
       {selected && !rulesAck && (
@@ -319,7 +323,7 @@ function BottomBar({ onToast }: { onToast: (t: string) => void }) {
           </button>
           {!installed && (
             <button className="btn-primary flex-1" onClick={onInstall}>
-              <PhoneAddIcon className="h-4 w-4" /> 加入桌面快捷方式
+              <PhoneAddIcon className="h-4 w-4" /> 加入桌面
             </button>
           )}
         </div>
@@ -388,7 +392,7 @@ function WeChatGuide({ mode, onClose }: { mode: 'share' | 'install'; onClose: ()
   )
 }
 
-function TopNav() {
+function TopNav({ onMine }: { onMine: () => void }) {
   return (
     <header className="sticky top-0 z-30 border-b border-ink-200 bg-white/85 backdrop-blur-xl">
       <div className="mx-auto flex max-w-2xl items-center gap-2.5 px-4 py-3">
@@ -398,8 +402,123 @@ function TopNav() {
         <span className="text-[13px] font-medium tracking-tight text-ink-800">
           影视学院 · 录音系
         </span>
+        <button
+          className="ml-auto flex items-center gap-1 rounded-full border border-ink-200 px-3 py-1.5 text-[13px] font-medium text-ink-700 active:bg-ink-50"
+          onClick={onMine}
+        >
+          <CalendarIcon className="h-3.5 w-3.5" /> 我的预约
+        </button>
       </div>
     </header>
+  )
+}
+
+const STATUS_META: Record<Booking['status'], { label: string; cls: string }> = {
+  booked: { label: '待核销', cls: 'bg-amber-100 text-amber-700' },
+  verified: { label: '已核销', cls: 'bg-emerald-100 text-emerald-700' },
+  cancelled: { label: '已取消', cls: 'bg-ink-100 text-ink-400' },
+}
+
+/** 「我的预约」弹层：按手机号查询本人预约，手机号通过 Cookie 记住。 */
+function MyBookings({ onClose }: { onClose: () => void }) {
+  const [phone, setPhone] = useState('')
+  const [bookings, setBookings] = useState<Booking[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  async function query(p?: string) {
+    setLoading(true)
+    setError('')
+    try {
+      const data = await fetchMyBookings(p)
+      setBookings(data)
+    } catch {
+      setError('查询失败，请检查手机号后重试')
+      setBookings(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 首次打开时若 Cookie 里记住了手机号，自动查询。
+  useEffect(() => {
+    const remembered = document.cookie
+      .split(';')
+      .map((c) => c.trim())
+      .find((c) => c.startsWith('mine_phone='))
+      ?.split('=')[1]
+    if (remembered) {
+      const p = decodeURIComponent(remembered)
+      setPhone(p)
+      void query(p)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div className="fixed inset-0 z-50 bg-ink-900/60 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col rounded-t-3xl bg-white"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-ink-100 px-6 py-4">
+          <h3 className="text-base font-semibold text-ink-900">我的预约</h3>
+          <button className="text-ink-400" onClick={onClose} aria-label="关闭">
+            <CloseIcon className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 px-6 py-3">
+          <input
+            className="input flex-1"
+            type="tel"
+            inputMode="numeric"
+            placeholder="输入预约手机号查询"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && phone.trim() && query(phone.trim())}
+          />
+          <button
+            className="btn-primary"
+            disabled={!phone.trim() || loading}
+            onClick={() => query(phone.trim())}
+          >
+            查询
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+          {error && <p className="py-2 text-[13px] text-rose-500">{error}</p>}
+          {loading && <p className="py-6 text-center text-sm text-ink-400">查询中…</p>}
+          {!loading && bookings && bookings.length === 0 && (
+            <p className="py-10 text-center text-sm text-ink-400">没有查询到预约记录</p>
+          )}
+          {!loading && bookings && bookings.length > 0 && (
+            <ul className="space-y-2.5 py-1">
+              {bookings.map((b) => {
+                const meta = STATUS_META[b.status]
+                return (
+                  <li key={b.id} className="rounded-2xl border border-ink-100 p-3.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-ink-900">{b.resource.name}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs ${meta.cls}`}>
+                        {meta.label}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 text-[13px] text-ink-500">
+                      {b.date} · {b.slot.name}（{b.slot.start_time}-{b.slot.end_time}）
+                    </div>
+                    <div className="mt-0.5 text-[13px] text-ink-400">
+                      {b.applicant_name} · 数量 {b.quantity}
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
