@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import {
   api,
   type BookingForm,
@@ -320,21 +319,13 @@ function BottomBar({ onToast }: { onToast: (t: string) => void }) {
 function TopNav() {
   return (
     <header className="sticky top-0 z-30 border-b border-ink-200 bg-white/85 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2.5">
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-ink-900 text-white">
-            <MicIcon className="h-3.5 w-3.5" />
-          </span>
-          <span className="text-[13px] font-medium tracking-tight text-ink-800">
-            影视学院 · 录音系
-          </span>
-        </div>
-        <Link
-          to="/admin"
-          className="text-[13px] font-medium text-ink-500 transition hover:text-ink-900"
-        >
-          后台管理
-        </Link>
+      <div className="mx-auto flex max-w-2xl items-center gap-2.5 px-4 py-3">
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-ink-900 text-white">
+          <MicIcon className="h-3.5 w-3.5" />
+        </span>
+        <span className="text-[13px] font-medium tracking-tight text-ink-800">
+          影视学院 · 录音系
+        </span>
       </div>
     </header>
   )
