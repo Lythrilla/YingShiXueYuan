@@ -92,12 +92,13 @@ class _SettingsPageState extends State<SettingsPage> {
                           style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.slate800)),
+                              color: AppColors.ink800)),
                       Slider(
                         value: _poll.toDouble(),
                         min: 10,
                         max: 120,
                         divisions: 11,
+                        activeColor: AppColors.ink900,
                         label: '$_poll 秒',
                         onChanged: (v) => setState(() => _poll = v.round()),
                         onChangeEnd: (v) async {
@@ -106,7 +107,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         },
                       ),
                       const Text('频率越高提醒越及时，但更耗电。',
-                          style: TextStyle(fontSize: 12, color: AppColors.slate400)),
+                          style: TextStyle(fontSize: 12, color: AppColors.ink400)),
                     ],
                   ),
                 ),
@@ -115,12 +116,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 AppCard(
                   child: Row(children: [
                     const Icon(Icons.dns_outlined,
-                        size: 18, color: AppColors.slate400),
+                        size: 18, color: AppColors.ink400),
                     const SizedBox(width: 10),
                     Expanded(
                         child: Text(_server,
                             style: const TextStyle(
-                                fontSize: 13, color: AppColors.slate600))),
+                                fontSize: 13, color: AppColors.ink600))),
                   ]),
                 ),
                 const SizedBox(height: 24),
@@ -147,9 +148,10 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.only(left: 4, bottom: 8),
         child: Text(t,
             style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.slate400)),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1,
+                color: AppColors.ink400)),
       );
 
   Widget _switch(
@@ -157,16 +159,17 @@ class _SettingsPageState extends State<SettingsPage> {
       SwitchListTile.adaptive(
         value: value,
         onChanged: onChanged,
-        activeThumbColor: AppColors.brand500,
+        activeThumbColor: Colors.white,
+        activeTrackColor: AppColors.ink900,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         title: Text(title,
             style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: AppColors.slate800)),
+                color: AppColors.ink800)),
         subtitle: Text(subtitle,
-            style: const TextStyle(fontSize: 12, color: AppColors.slate400)),
+            style: const TextStyle(fontSize: 12, color: AppColors.ink400)),
       );
 
-  Widget _divider() => const Divider(height: 1, color: AppColors.slate100);
+  Widget _divider() => const Divider(height: 1, color: AppColors.ink100);
 }

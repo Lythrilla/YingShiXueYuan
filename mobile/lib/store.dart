@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// 统一的本地存储（服务器地址、登录令牌、提醒偏好）。
 /// 同时被 UI isolate 与后台服务 isolate 读取，因此读前都先 `reload()`。
 class Store {
-  static const _kServerUrl = 'server_url';
   static const _kToken = 'token';
   static const _kUsername = 'username';
 
@@ -14,6 +13,7 @@ class Store {
   static const _kPollSeconds = 'poll_seconds';
   static const _kSeenPendingIds = 'seen_pending_ids';
 
+  /// 服务器地址写死，用户无需也无法修改。
   static const defaultServerUrl = 'http://117.72.222.31:8888';
 
   static Future<SharedPreferences> _prefs() async {
@@ -23,11 +23,8 @@ class Store {
   }
 
   // ---------- 连接 ----------
-  static Future<String> serverUrl() async =>
-      (await _prefs()).getString(_kServerUrl) ?? defaultServerUrl;
-
-  static Future<void> setServerUrl(String v) async =>
-      (await _prefs()).setString(_kServerUrl, v.trim());
+  // 地址写死，始终使用固定服务器。
+  static Future<String> serverUrl() async => defaultServerUrl;
 
   static Future<String?> token() async => (await _prefs()).getString(_kToken);
 

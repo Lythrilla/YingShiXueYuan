@@ -55,6 +55,16 @@ class Notifications {
         description: '常驻显示当前待处理预约数量',
         importance: Importance.high,
       ));
+      // 后台前台服务的常驻通知通道（须在服务 startForeground 前创建）。
+      await android11
+          .createNotificationChannel(const AndroidNotificationChannel(
+        serviceChannelId,
+        '后台监控服务',
+        description: '常驻后台监控，定时检查新的待处理预约',
+        importance: Importance.low,
+        playSound: false,
+        enableVibration: false,
+      ));
     }
     _inited = true;
   }

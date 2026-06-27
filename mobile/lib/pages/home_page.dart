@@ -32,9 +32,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _refresh();
     BackgroundPoller.start();
-    // App 在前台时也定时刷新列表。
     _timer = Timer.periodic(const Duration(seconds: 15), (_) => _refresh());
-    // 监听后台服务的更新事件，待处理数量变化时立即刷新。
     _sub = BackgroundPoller.instance.on('update').listen((_) {
       if (mounted) _refresh();
     });
@@ -98,8 +96,13 @@ class _HomePageState extends State<HomePage> {
         title: const Text('取消预约'),
         content: Text('确认取消「${b.applicantName}」的预约？'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('再想想')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('确认取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('再想想')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: TextButton.styleFrom(foregroundColor: AppColors.rose600),
+              child: const Text('确认取消')),
         ],
       ),
     );
@@ -110,10 +113,11 @@ class _HomePageState extends State<HomePage> {
   Future<void> _act(Future<void> Function() fn, String okMsg) async {
     try {
       await fn();
-      BackgroundPoller.pollNow(); // 让后台立即撤掉对应通知
+      BackgroundPoller.pollNow();
       await _refresh();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(okMsg)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(okMsg)));
       }
     } catch (e) {
       if (mounted) {
@@ -131,26 +135,20 @@ class _HomePageState extends State<HomePage> {
         titleSpacing: 16,
         title: Row(
           children: [
-            Container(
-              height: 36,
-              width: 36,
-              decoration: BoxDecoration(
-                  color: AppColors.brand50, borderRadius: BorderRadius.circular(12)),
-              alignment: Alignment.center,
-              child: const Text('🎙️', style: TextStyle(fontSize: 18)),
-            ),
+            const BrandMark(size: 32),
             const SizedBox(width: 10),
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('录音实验室 · 后台',
+                Text('录音系预约后台',
                     style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.slate800)),
-                Text('预约管理控制台',
-                    style: TextStyle(fontSize: 11, color: AppColors.slate400)),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
+                        color: AppColors.ink900)),
+                Text('河北科技大学影视学院',
+                    style: TextStyle(fontSize: 11, color: AppColors.ink400)),
               ],
             ),
           ],
@@ -158,22 +156,23 @@ class _HomePageState extends State<HomePage> {
         actions: [
           IconButton(
             tooltip: '提醒设置',
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () =>
-                Navigator.of(context).push(fadeThroughRoute(const SettingsPage())),
+            icon: const Icon(Icons.settings_outlined, color: AppColors.ink700),
+            onPressed: () => Navigator.of(context)
+                .push(fadeThroughRoute(const SettingsPage())),
           ),
           IconButton(
             tooltip: '退出登录',
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: AppColors.ink700),
             onPressed: _logout,
           ),
           const SizedBox(width: 4),
         ],
       ),
       body: RefreshIndicator(
+        color: AppColors.ink900,
         onRefresh: _refresh,
         child: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(color: AppColors.ink900))
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 children: [
@@ -181,26 +180,33 @@ class _HomePageState extends State<HomePage> {
                   if (pendingCount > 0)
                     FadeSlideIn(child: _pendingBanner(pendingCount)),
                   FadeSlideIn(
-                      delay: const Duration(milliseconds: 80),
+                      delay: const Duration(milliseconds: 60),
                       child: _statsGrid()),
                   const SizedBox(height: 18),
                   FadeSlideIn(
-                      delay: const Duration(milliseconds: 140),
+                      delay: const Duration(milliseconds: 120),
                       child: _filterTabs()),
                   const SizedBox(height: 12),
                   ...List.generate(
                     _bookings.length,
                     (i) => FadeSlideIn(
-                      delay: Duration(milliseconds: 180 + i * 55),
+                      delay: Duration(milliseconds: 160 + i * 50),
                       child: _bookingCard(_bookings[i]),
                     ),
                   ),
                   if (_bookings.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 48),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 56),
                       child: Center(
-                        child: Text('暂无预约记录',
-                            style: TextStyle(color: AppColors.slate400)),
+                        child: Column(
+                          children: [
+                            Icon(Icons.inbox_outlined,
+                                size: 40, color: AppColors.ink300),
+                            const SizedBox(height: 10),
+                            const Text('暂无预约记录',
+                                style: TextStyle(color: AppColors.ink400)),
+                          ],
+                        ),
                       ),
                     ),
                 ],
@@ -213,31 +219,45 @@ class _HomePageState extends State<HomePage> {
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-            color: AppColors.rose50, borderRadius: BorderRadius.circular(14)),
+          color: AppColors.rose50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.rose200),
+        ),
         child: Row(children: [
-          const Icon(Icons.error_outline, color: AppColors.rose, size: 20),
+          const Icon(Icons.error_outline, color: AppColors.rose600, size: 20),
           const SizedBox(width: 10),
           Expanded(
-              child: Text(msg, style: const TextStyle(color: AppColors.rose))),
+              child:
+                  Text(msg, style: const TextStyle(color: AppColors.rose600))),
         ]),
       );
 
   Widget _pendingBanner(int count) => Container(
         margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-              colors: [AppColors.rose, Color(0xFFE11D48)]),
-          borderRadius: BorderRadius.circular(18),
+          color: AppColors.ink900,
+          borderRadius: BorderRadius.circular(14),
           boxShadow: const [
-            BoxShadow(color: Color(0x33F43F5E), blurRadius: 20, offset: Offset(0, 8)),
+            BoxShadow(
+                color: Color(0x33181B1B),
+                blurRadius: 20,
+                offset: Offset(0, 8),
+                spreadRadius: -10),
           ],
         ),
         child: Row(
           children: [
-            const Pulse(
-                child: Icon(Icons.notifications_active,
-                    color: Colors.white, size: 26)),
+            Pulse(
+              child: Container(
+                height: 34,
+                width: 34,
+                decoration: const BoxDecoration(
+                    color: AppColors.accent500, shape: BoxShape.circle),
+                child: const Icon(Icons.notifications_active,
+                    color: Colors.white, size: 19),
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -246,21 +266,27 @@ class _HomePageState extends State<HomePage> {
                   Text('$count 条预约待处理',
                       style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold)),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
                   const Text('处理（通过 / 取消）后提醒才会消失',
-                      style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 12)),
                 ],
               ),
             ),
             TextButton(
               onPressed: () {
                 BackgroundPoller.silence();
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('已静音本轮提醒（未处理仍会再次提醒）')));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('已静音本轮提醒（未处理仍会再次提醒）')));
               },
               style: TextButton.styleFrom(
-                  backgroundColor: Colors.white24, foregroundColor: Colors.white),
+                backgroundColor: Colors.white.withValues(alpha: 0.14),
+                foregroundColor: Colors.white,
+                shape: const StadiumBorder(),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
               child: const Text('静音'),
             ),
           ],
@@ -269,42 +295,47 @@ class _HomePageState extends State<HomePage> {
 
   Widget _statsGrid() {
     final s = _stats;
-    final items = [
-      ('总预约', s?.total ?? 0, [AppColors.brand500, AppColors.brand600]),
-      ('待处理', s?.booked ?? 0, [const Color(0xFFFBBF24), AppColors.amber]),
-      ('已通过', s?.verified ?? 0, [const Color(0xFF34D399), AppColors.emerald]),
-      ('今日', s?.today ?? 0, [AppColors.brand500, AppColors.brand600]),
+    final items = <(String, int, Color)>[
+      ('总预约', s?.total ?? 0, AppColors.ink900),
+      ('待处理', s?.booked ?? 0, AppColors.amber400),
+      ('已通过', s?.verified ?? 0, AppColors.emerald500),
+      ('已取消', s?.cancelled ?? 0, AppColors.ink300),
+      ('今日预约', s?.today ?? 0, AppColors.accent500),
     ];
     return GridView.count(
-      crossAxisCount: 4,
+      crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 10,
       crossAxisSpacing: 10,
-      childAspectRatio: 0.92,
+      childAspectRatio: 2.1,
       children: items
-          .map((it) => Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: it.$3),
-                  borderRadius: BorderRadius.circular(16),
-                ),
+          .map((it) => AppCard(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(children: [
+                      Container(
+                        height: 7,
+                        width: 7,
+                        decoration:
+                            BoxDecoration(color: it.$3, shape: BoxShape.circle),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(it.$1,
+                          style: const TextStyle(
+                              fontSize: 13, color: AppColors.ink500)),
+                    ]),
+                    const SizedBox(height: 6),
                     AnimatedCount(it.$2,
                         style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 2),
-                    Text(it.$1,
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 12)),
+                            color: AppColors.ink900,
+                            fontSize: 26,
+                            height: 1,
+                            letterSpacing: -0.5,
+                            fontWeight: FontWeight.w600)),
                   ],
                 ),
               ))
@@ -315,46 +346,60 @@ class _HomePageState extends State<HomePage> {
   Widget _filterTabs() {
     Widget tab(String key, String label) {
       final active = _filter == key;
-      return GestureDetector(
-        onTap: () {
-          setState(() {
-            _filter = key;
-            _loading = true;
-          });
-          _refresh();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-          decoration: BoxDecoration(
-            color: active ? AppColors.brand500 : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-                color: active ? AppColors.brand500 : AppColors.slate200),
+      return Expanded(
+        child: GestureDetector(
+          onTap: () {
+            if (_filter == key) return;
+            setState(() {
+              _filter = key;
+              _loading = true;
+            });
+            _refresh();
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.symmetric(vertical: 9),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: active ? AppColors.ink900 : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: active ? Colors.white : AppColors.ink500)),
           ),
-          child: Text(label,
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: active ? Colors.white : AppColors.slate600)),
         ),
       );
     }
 
-    return Row(children: [
-      tab('booked', '待处理'),
-      const SizedBox(width: 10),
-      tab('all', '全部记录'),
-    ]);
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.ink200),
+      ),
+      child: Row(children: [
+        tab('booked', '待处理'),
+        const SizedBox(width: 4),
+        tab('all', '全部记录'),
+      ]),
+    );
   }
 
   Widget _bookingCard(Booking b) {
     final label = statusLabels[b.status] ?? b.status;
-    final (Color bg, Color fg) = switch (b.status) {
-      'booked' => (AppColors.amber50, AppColors.amber700),
-      'verified' => (AppColors.emerald50, AppColors.emerald700),
-      _ => (AppColors.slate100, AppColors.slate500),
+    final (Color bg, Color fg, Color dot) = switch (b.status) {
+      'booked' => (AppColors.amber50, AppColors.amber700, AppColors.amber400),
+      'verified' => (
+          AppColors.emerald50,
+          AppColors.emerald700,
+          AppColors.emerald500
+        ),
+      _ => (AppColors.ink100, AppColors.ink500, AppColors.ink300),
     };
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -370,58 +415,73 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Text(b.applicantName,
                           style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.slate800)),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.ink900)),
                       const SizedBox(height: 2),
                       Text(b.phone,
                           style: const TextStyle(
-                              fontSize: 12, color: AppColors.slate400)),
+                              fontSize: 12, color: AppColors.ink400)),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                       color: bg, borderRadius: BorderRadius.circular(20)),
-                  child: Text(label,
-                      style: TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Container(
+                      height: 6,
+                      width: 6,
+                      decoration:
+                          BoxDecoration(color: dot, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(label,
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: fg)),
+                  ]),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             _infoRow(Icons.meeting_room_outlined, b.resource.name),
-            _infoRow(Icons.event_outlined, '${b.date}  ${b.slot.name} ${b.slot.range}'),
+            _infoRow(Icons.event_outlined,
+                '${b.date}  ${b.slot.name} ${b.slot.range}'),
             _infoRow(Icons.groups_outlined,
                 '${b.numPeople} 人 / ${b.quantity} 套${b.instructor.isNotEmpty ? '  ·  指导：${b.instructor}' : ''}'),
             if (b.description.isNotEmpty)
               _infoRow(Icons.notes_outlined, b.description),
             if (b.status == 'booked') ...[
               const SizedBox(height: 14),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
               Row(children: [
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _verify(b),
-                    icon: const Icon(Icons.check_circle_outline, size: 18),
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.emerald),
-                    label: const Text('通过'),
+                  child: TapScale(
+                    child: _actionButton(
+                      label: '通过',
+                      icon: Icons.check_circle_outline,
+                      bg: AppColors.emerald50,
+                      fg: AppColors.emerald700,
+                      onTap: () => _verify(b),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _cancel(b),
-                    icon: const Icon(Icons.cancel_outlined, size: 18),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.rose,
-                      side: const BorderSide(color: AppColors.rose),
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                  child: TapScale(
+                    child: _actionButton(
+                      label: '取消',
+                      icon: Icons.cancel_outlined,
+                      bg: Colors.white,
+                      fg: AppColors.rose600,
+                      border: AppColors.rose200,
+                      onTap: () => _cancel(b),
                     ),
-                    label: const Text('取消'),
                   ),
                 ),
               ]),
@@ -432,17 +492,47 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _actionButton({
+    required String label,
+    required IconData icon,
+    required Color bg,
+    required Color fg,
+    Color? border,
+    required VoidCallback onTap,
+  }) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: border ?? bg),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 17, color: fg),
+              const SizedBox(width: 6),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w600, color: fg)),
+            ],
+          ),
+        ),
+      );
+
   Widget _infoRow(IconData icon, String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.only(bottom: 7),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 16, color: AppColors.slate400),
+            Icon(icon, size: 16, color: AppColors.ink400),
             const SizedBox(width: 8),
             Expanded(
                 child: Text(text,
                     style: const TextStyle(
-                        fontSize: 13, color: AppColors.slate600))),
+                        fontSize: 13, color: AppColors.ink600))),
           ],
         ),
       );
