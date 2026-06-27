@@ -99,6 +99,15 @@ export interface ImageUploadResponse {
   url: string
 }
 
+/** 按手机号查询“我的预约”。手机号留空时后端会尝试读取 Cookie 中记住的号码。 */
+export async function fetchMyBookings(phone?: string): Promise<Booking[]> {
+  const res = await api.get<Booking[]>('/my-bookings', {
+    params: phone ? { phone } : undefined,
+    withCredentials: true,
+  })
+  return res.data
+}
+
 export async function uploadImage(file: File): Promise<string> {
   const form = new FormData()
   form.append('image', file)

@@ -119,7 +119,10 @@ pub async fn create_booking(
     }
 
     let booking = db::create_booking(&conn, &payload)?;
-    Ok((StatusCode::CREATED, Json(booking)).into_response())
+    let mut resp = (StatusCode::CREATED, Json(booking)).into_response();
+    resp.headers_mut()
+        .insert(header::SET_COOKIE, remember_phone_cookie(payload.phone.trim()));
+    Ok(resp)
 }
 
 // ---------- Admin: auth ----------
@@ -364,7 +367,65 @@ fn filter_from_query(q: &HashMap<String, String>) -> BookingFilter {
         resource_id: pick("resource_id").and_then(|v| v.parse().ok()),
         date: pick("date"),
         keyword: pick("keyword"),
+        phone: None,
     }
+}
+
+const PHONE_COOKIE: &str = "mine_phone";
+
+/// 从 Cookie 头里取出记住的预约手机号（创建预约时写入）。
+fn phone_from_cookie(headers: &HeaderMap) -> Option<String> {
+    let cookies = headers.get(header::COOKIE)?.to_str().ok()?;
+    cookies.split(';').find_map(|kv| {
+        let (k, v) = kv.split_once('=')?;
+        if k.trim() == PHONE_COOKIE {
+            let v = v.trim();
+            if v.is_empty() {
+                None
+            } else {
+                Some(v.to_string())
+            }
+        } else {
+            None
+        }
+    })
+}
+
+/// 公开接口：按手机号查询“我的预约”。手机号来自查询参数，缺省则读 Cookie。
+/// 命中后顺带把手机号写入长期 Cookie，方便下次自动带出。
+pub async fn my_bookings(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Query(q): Query<HashMap<String, String>>,
+) -> ApiResult<Response> {
+    let phone = q
+        .get("phone")
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .or_else(|| phone_from_cookie(&headers));
+
+    let phone = match phone {
+        Some(p) => p,
+        None => return Err(ApiError::bad_request("请输入手机号查询")),
+    };
+
+    let filter = BookingFilter {
+        phone: Some(phone.clone()),
+        ..Default::default()
+    };
+    let bookings = db::list_bookings(&st.conn(), &filter)?;
+
+    let mut resp = Json(bookings).into_response();
+    resp.headers_mut()
+        .insert(header::SET_COOKIE, remember_phone_cookie(&phone));
+    Ok(resp)
+}
+
+/// 一年有效期的手机号 Cookie；同源 SameSite=Lax，JS 可读以便前端展示。
+fn remember_phone_cookie(phone: &str) -> axum::http::HeaderValue {
+    let value = format!("{PHONE_COOKIE}={phone}; Path=/; Max-Age=31536000; SameSite=Lax");
+    axum::http::HeaderValue::from_str(&value)
+        .unwrap_or_else(|_| axum::http::HeaderValue::from_static(""))
 }
 
 pub async fn admin_list_bookings(

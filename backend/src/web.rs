@@ -34,6 +34,17 @@ fn serve(path: &str, body: Vec<u8>) -> Response {
     Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, mime.as_ref())
+        .header(header::CACHE_CONTROL, cache_control(path))
         .body(Body::from(body))
         .unwrap()
+}
+
+/// 带内容 hash 的构建产物（`assets/` 下）可长期强缓存；其余（index.html、
+/// Service Worker 等入口文件）不缓存，保证更新后立即生效。
+fn cache_control(path: &str) -> &'static str {
+    if path.starts_with("assets/") {
+        "public, max-age=31536000, immutable"
+    } else {
+        "no-cache"
+    }
 }

@@ -218,6 +218,7 @@ pub struct BookingFilter {
     pub resource_id: Option<i64>,
     pub date: Option<String>,
     pub keyword: Option<String>,
+    pub phone: Option<String>,
 }
 
 fn hydrate_booking(conn: &Connection, row: &Row) -> rusqlite::Result<Booking> {
@@ -259,6 +260,10 @@ pub fn list_bookings(conn: &Connection, f: &BookingFilter) -> rusqlite::Result<V
     if let Some(d) = &f.date {
         sql.push_str(" AND date = ?");
         args.push(Box::new(d.clone()));
+    }
+    if let Some(p) = &f.phone {
+        sql.push_str(" AND phone = ?");
+        args.push(Box::new(p.clone()));
     }
     if let Some(k) = &f.keyword {
         sql.push_str(" AND (applicant_name LIKE ? OR phone LIKE ? OR instructor LIKE ?)");

@@ -14,6 +14,7 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
+use tower_http::compression::CompressionLayer;
 use tower_http::cors::{Any, CorsLayer};
 
 use config::Config;
@@ -41,6 +42,7 @@ async fn main() {
         .route("/api/slots", get(handlers::list_slots))
         .route("/api/availability/:id", get(handlers::availability))
         .route("/api/bookings", post(handlers::create_booking))
+        .route("/api/my-bookings", get(handlers::my_bookings))
         // admin auth
         .route("/api/admin/login", post(handlers::login))
         // admin resources
@@ -76,6 +78,7 @@ async fn main() {
         .merge(api)
         // 其余路径交给嵌入的前端静态资源（含 SPA 回退）
         .fallback(web::static_handler)
+        .layer(CompressionLayer::new())
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
