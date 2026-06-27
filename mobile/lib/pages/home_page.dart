@@ -100,7 +100,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       _scaffold('更多', const MorePage()),
     ];
     return Scaffold(
-      body: IndexedStack(index: _index, children: pages),
+      body: AnimatedIndexedStack(index: _index, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),

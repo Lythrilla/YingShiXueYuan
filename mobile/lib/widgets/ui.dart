@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models.dart';
 import '../theme.dart';
+import 'anim.dart';
 
 /// 区块标题（小号大写字母间距的灰色标签）。
 class SectionTitle extends StatelessWidget {
@@ -182,13 +183,18 @@ class BarList extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 5),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: LinearProgressIndicator(
-                  value: frac,
-                  minHeight: 8,
-                  backgroundColor: AppColors.ink100,
-                  valueColor: AlwaysStoppedAnimation<Color>(c),
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: frac),
+                duration: AppMotion.slow,
+                curve: AppMotion.emphasized,
+                builder: (_, value, _) => ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: value,
+                    minHeight: 8,
+                    backgroundColor: AppColors.ink100,
+                    valueColor: AlwaysStoppedAnimation<Color>(c),
+                  ),
                 ),
               ),
             ],
@@ -215,19 +221,25 @@ class TrendChart extends StatelessWidget {
                 style: TextStyle(color: AppColors.ink400))),
       );
     }
-    return SizedBox(
-      height: height,
-      child: CustomPaint(
-        size: Size.infinite,
-        painter: _TrendPainter(points),
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: AppMotion.slow,
+      curve: AppMotion.emphasized,
+      builder: (_, progress, _) => SizedBox(
+        height: height,
+        child: CustomPaint(
+          size: Size.infinite,
+          painter: _TrendPainter(points, progress),
+        ),
       ),
     );
   }
 }
 
 class _TrendPainter extends CustomPainter {
-  _TrendPainter(this.points);
+  _TrendPainter(this.points, this.progress);
   final List<LabeledCount> points;
+  final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -265,27 +277,40 @@ class _TrendPainter extends CustomPainter {
       return Offset(x, y);
     }
 
-    final path = Path();
-    final fill = Path();
-    for (int i = 0; i < n; i++) {
-      final p = at(i);
-      if (i == 0) {
-        path.moveTo(p.dx, p.dy);
-        fill.moveTo(p.dx, chartH);
-        fill.lineTo(p.dx, p.dy);
-      } else {
-        path.lineTo(p.dx, p.dy);
-        fill.lineTo(p.dx, p.dy);
+    final visible = <Offset>[at(0)];
+    if (n > 1) {
+      final scaled = (n - 1) * progress.clamp(0.0, 1.0);
+      final fullLast = scaled.floor().clamp(0, n - 1).toInt();
+      for (int i = 1; i <= fullLast; i++) {
+        visible.add(at(i));
+      }
+      if (fullLast < n - 1) {
+        final p0 = at(fullLast);
+        final p1 = at(fullLast + 1);
+        visible.add(Offset.lerp(p0, p1, (scaled - fullLast).toDouble())!);
       }
     }
-    fill.lineTo(at(n - 1).dx, chartH);
-    fill.close();
-    canvas.drawPath(fill, fillPaint);
-    canvas.drawPath(path, linePaint);
+    final path = Path()..moveTo(visible.first.dx, visible.first.dy);
+    final fill = Path()
+      ..moveTo(visible.first.dx, chartH)
+      ..lineTo(visible.first.dx, visible.first.dy);
+    for (final p in visible.skip(1)) {
+      path.lineTo(p.dx, p.dy);
+      fill.lineTo(p.dx, p.dy);
+    }
+    if (visible.length > 1) {
+      fill
+        ..lineTo(visible.last.dx, chartH)
+        ..close();
+      canvas.drawPath(fill, fillPaint);
+      canvas.drawPath(path, linePaint);
+    }
 
     final labelStyle = TextStyle(
         color: AppColors.ink400, fontSize: 9, fontWeight: FontWeight.w500);
     for (int i = 0; i < n; i++) {
+      final threshold = n == 1 ? 0.0 : i / (n - 1);
+      if (progress + 0.001 < threshold) continue;
       final p = at(i);
       canvas.drawCircle(p, 2.6, dotPaint);
       // 仅在首、中、尾绘制日期，避免拥挤。
@@ -307,5 +332,6 @@ class _TrendPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _TrendPainter old) => old.points != points;
+  bool shouldRepaint(covariant _TrendPainter old) =>
+      old.points != points || old.progress != progress;
 }
