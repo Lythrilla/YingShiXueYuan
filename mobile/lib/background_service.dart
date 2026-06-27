@@ -6,7 +6,9 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 
 import 'alert_engine.dart';
 import 'api_client.dart';
+import 'models.dart';
 import 'notification_service.dart';
+import 'sse_client.dart';
 import 'store.dart';
 
 /// 后台前台服务：常驻轮询「待处理预约」，并驱动强提醒。
@@ -44,6 +46,7 @@ class BackgroundPoller {
   static void pollNow() => _service.invoke('pollNow');
   static void settingsChanged() => _service.invoke('settingsChanged');
   static void silence() => _service.invoke('silence');
+  static void reconnect() => _service.invoke('reconnect');
 }
 
 @pragma('vm:entry-point')
@@ -60,6 +63,22 @@ Future<void> onStart(ServiceInstance service) async {
   await Notifications.init();
 
   Timer? timer;
+  SseClient? sse;
+
+  // SSE 长连接：服务器有新事件时即时推送，几乎不耗电。
+  // 同时保留一个低频兜底轮询，应对连接尚未建立 / 偶发丢包。
+  Future<void> connectSse() async {
+    sse?.stop();
+    final token = await Store.token();
+    if (token == null || token.isEmpty) return;
+    final api = await ApiClient.fromStore();
+    sse = SseClient(
+      uri: api.sseUri(),
+      onEvent: (data) => _onSseEvent(service, data),
+      onState: (connected) =>
+          service.invoke('sse', {'connected': connected}),
+    )..start();
+  }
 
   Future<void> reschedule() async {
     timer?.cancel();
@@ -69,14 +88,52 @@ Future<void> onStart(ServiceInstance service) async {
 
   service.on('stopService').listen((_) {
     timer?.cancel();
+    sse?.stop();
     service.stopSelf();
   });
   service.on('pollNow').listen((_) => _poll(service));
   service.on('settingsChanged').listen((_) => reschedule());
   service.on('silence').listen((_) => AlertEngine.stop());
+  service.on('reconnect').listen((_) => connectSse());
 
   await reschedule();
+  await connectSse();
   await _poll(service);
+}
+
+/// 处理 SSE 推送：审批类事件触发即时刷新；开门提醒触发强提醒。
+@pragma('vm:entry-point')
+Future<void> _onSseEvent(
+    ServiceInstance service, Map<String, dynamic> data) async {
+  final type = (data['type'] ?? '') as String;
+  if (type == 'door_reminder') {
+    await _handleDoorReminder(service, data);
+    return;
+  }
+  // new_booking / update / verify / cancel 等：即时拉取一次最新待处理。
+  await _poll(service);
+}
+
+/// 开门提醒：到点推送强提醒给负责人（区别于审批提醒）。
+@pragma('vm:entry-point')
+Future<void> _handleDoorReminder(
+    ServiceInstance service, Map<String, dynamic> data) async {
+  try {
+    final reminder = DoorReminder.fromJson(data);
+    // 同一条预约只提醒一次。
+    final fresh = await Store.markDoorReminded(reminder.bookingId);
+    if (!fresh) return;
+    final fullscreen = await Store.alertFullscreen();
+    await Notifications.showDoorReminder(
+      reminder,
+      fullScreen: fullscreen,
+      playSound: false,
+    );
+    await AlertEngine.fire();
+    service.invoke('door', data);
+  } catch (e) {
+    debugPrint('door reminder error: $e');
+  }
 }
 
 /// 单次轮询：拉取待处理预约 → 刷新常驻通知 → 触发/停止强提醒。

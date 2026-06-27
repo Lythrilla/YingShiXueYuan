@@ -17,11 +17,14 @@ const HEADERS: &[&str] = &[
     "状态",
     "提交时间",
     "通过时间",
+    "处理人",
+    "审批备注",
     "录音事项说明",
 ];
 
 const WIDTHS: &[f64] = &[
-    10.0, 22.0, 8.0, 12.0, 18.0, 12.0, 16.0, 14.0, 10.0, 12.0, 10.0, 10.0, 18.0, 18.0, 40.0,
+    10.0, 22.0, 8.0, 12.0, 18.0, 12.0, 16.0, 14.0, 10.0, 12.0, 10.0, 10.0, 18.0, 18.0, 12.0, 24.0,
+    40.0,
 ];
 
 fn status_label(status: &str) -> &str {
@@ -85,7 +88,9 @@ pub fn bookings_to_xlsx(bookings: &[Booking]) -> Result<Vec<u8>, XlsxError> {
             13,
             b.verified_at.as_deref().map(fmt_dt).unwrap_or_default(),
         )?;
-        worksheet.write_string(row, 14, &b.description)?;
+        worksheet.write_string(row, 14, &b.processed_by)?;
+        worksheet.write_string(row, 15, &b.admin_note)?;
+        worksheet.write_string(row, 16, &b.description)?;
     }
 
     for (col, width) in WIDTHS.iter().enumerate() {

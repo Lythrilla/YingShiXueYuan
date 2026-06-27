@@ -48,6 +48,30 @@ class _SettingsPageState extends State<SettingsPage> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                _sectionTitle('推送方式'),
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Row(children: [
+                        Icon(Icons.bolt, size: 18, color: AppColors.accent500),
+                        SizedBox(width: 8),
+                        Text('实时长连接推送（省电）',
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.ink800)),
+                      ]),
+                      SizedBox(height: 8),
+                      Text(
+                        '已启用 SSE 长连接：App 只维持一条空闲连接，服务器有新预约或到点开门时会即时推送，几乎不耗电、延迟低于 1 秒。下方的「检查频率」仅作为长连接断开时的兜底轮询。',
+                        style:
+                            TextStyle(fontSize: 12.5, color: AppColors.ink500, height: 1.5),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
                 _sectionTitle('提醒方式'),
                 AppCard(
                   padding: EdgeInsets.zero,

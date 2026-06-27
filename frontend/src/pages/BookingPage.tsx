@@ -799,22 +799,41 @@ function BookingModal({
           </div>
         ) : (
           <>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="eyebrow">填写预约信息</p>
-                <h3 className="mt-1.5 text-lg font-semibold tracking-tight text-ink-900">
-                  {resource.name}
-                </h3>
-                <p className="mt-0.5 text-[13px] text-ink-500">
-                  {date} · {slot.name}（{slot.start_time}-{slot.end_time}）
-                </p>
-              </div>
+            <div className="relative -mx-4 -mt-4 mb-1 h-36 overflow-hidden rounded-t-2xl bg-ink-100 sm:-mx-5 sm:-mt-5 sm:rounded-t-xl">
+              {resource.image_url ? (
+                <img
+                  src={resource.image_url}
+                  alt={resource.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="grid h-full place-items-center text-ink-300">
+                  {resource.kind === 'lab' ? (
+                    <MicIcon className="h-10 w-10" />
+                  ) : (
+                    <SlidersIcon className="h-10 w-10" />
+                  )}
+                </div>
+              )}
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-950/60 via-ink-950/10 to-transparent" />
               <button
                 onClick={onClose}
-                className="grid h-9 w-9 place-items-center rounded-full text-ink-400 transition hover:bg-ink-100 hover:text-ink-700"
+                className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/85 text-ink-600 backdrop-blur transition hover:bg-white hover:text-ink-900"
               >
                 <CloseIcon className="h-4 w-4" />
               </button>
+            </div>
+
+            <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
+              <div className="min-w-0">
+                <p className="eyebrow">填写预约信息</p>
+                <h3 className="mt-1.5 truncate text-lg font-semibold tracking-tight text-ink-900">
+                  {resource.name}
+                </h3>
+              </div>
+              <p className="shrink-0 text-[13px] text-ink-500">
+                {date} · {slot.name}（{slot.start_time}-{slot.end_time}）
+              </p>
             </div>
 
             <div className="mt-5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
@@ -847,7 +866,7 @@ function BookingModal({
                   className="input"
                   value={form.instructor}
                   onChange={(e) => update('instructor', e.target.value)}
-                  placeholder="如 居老师"
+                  placeholder="居佳英"
                 />
               </Field>
               <Field label="录音人数">

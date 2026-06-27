@@ -37,7 +37,9 @@ class _LoginPageState extends State<LoginPage> {
       final res = await api.login(_username.text.trim(), _password.text);
       await Store.setToken(res.token);
       await Store.setUsername(res.username);
+      await Store.setRole(res.role);
       await BackgroundPoller.start();
+      BackgroundPoller.reconnect();
       BackgroundPoller.pollNow();
       if (!mounted) return;
       Navigator.of(context).pushReplacement(fadeThroughRoute(const HomePage()));
