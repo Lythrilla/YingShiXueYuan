@@ -93,7 +93,7 @@ async fn main() {
         });
 
     let url = format!("http://{}:{}", display_host(&config.host), config.port);
-    println!("\n  录音实验室预约系统已启动");
+    println!("\n  河北科技大学影视学院录音系 · 录音实验室预约系统已启动");
     println!("  打开浏览器访问： {url}");
     println!("  数据库文件： {:?}", config.db_path);
     println!("  按 Ctrl+C 退出\n");

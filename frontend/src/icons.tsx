@@ -183,6 +183,43 @@ export function ArrowRightIcon(props: IconProps) {
   )
 }
 
+export function ShareIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="18" cy="5" r="2.5" />
+      <circle cx="6" cy="12" r="2.5" />
+      <circle cx="18" cy="19" r="2.5" />
+      <path d="m8.2 10.8 7.6-4.1M8.2 13.2l7.6 4.1" />
+    </Svg>
+  )
+}
+
+export function PhoneAddIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="6" y="2.5" width="12" height="19" rx="2.5" />
+      <path d="M10 18.5h4" />
+      <path d="M12 7v5M9.5 9.5h5" />
+    </Svg>
+  )
+}
+
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="m6 9 6 6 6-6" />
+    </Svg>
+  )
+}
+
+export function MinusIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M5 12h14" />
+    </Svg>
+  )
+}
+
 export function WaveformIcon(props: IconProps) {
   return (
     <Svg {...props}>

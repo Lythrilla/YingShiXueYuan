@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import {
   api,
   type BookingForm,
@@ -8,6 +7,7 @@ import {
   type Slot,
 } from '../api'
 import { toDateStr, upcomingDays, WEEKDAYS } from '../lib'
+import { shareApp, useInstallPrompt } from '../pwa'
 import {
   CalendarIcon,
   CheckCircleIcon,
@@ -15,8 +15,36 @@ import {
   HeadphonesIcon,
   LockIcon,
   MicIcon,
+  MinusIcon,
+  PhoneAddIcon,
+  PlusIcon,
+  ShareIcon,
   SlidersIcon,
 } from '../icons'
+
+const RULES: { title: string; items: string[] }[] = [
+  {
+    title: '使用时间',
+    items: [
+      '请严格按照预约时间段使用录音实验室及相关设备，避免超时影响后续人员的正常使用。',
+      '预约时间段已包含设备预热、调试及使用后的整理时间。如需超时，请提前与下一位预约者协商并取得同意。',
+    ],
+  },
+  {
+    title: '操作规范',
+    items: [
+      '使用前请务必熟悉录音设备的操作规程及安全注意事项，包括但不限于调音台、麦克风、音频接口、监听音箱等。',
+      '操作过程中请严格遵守实验室及设备的使用规定，严禁擅自更改设备参数、连接线路或进行非授权操作。',
+    ],
+  },
+  {
+    title: '记录与清洁',
+    items: [
+      '使用后请如实填写设备使用记录，内容包括实验 / 录音项目名称、使用设备状态及异常情况等。',
+      '使用完毕后，请整理麦克风、耳机、线材等设备，关闭电源，保持录音室及控制室整洁有序。',
+    ],
+  },
+]
 
 const BOOKING_WINDOW_DAYS = 7
 
@@ -31,6 +59,7 @@ export default function BookingPage() {
   const [date, setDate] = useState(toDateStr(days[0]))
   const [resources, setResources] = useState<Resource[]>([])
   const [slots, setSlots] = useState<Slot[]>([])
+  const [slotId, setSlotId] = useState<number | null>(null)
   const [availability, setAvailability] = useState<Record<number, ResourceAvailability>>({})
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<SelectedSlot | null>(null)
@@ -40,6 +69,7 @@ export default function BookingPage() {
       .then(([r, s]) => {
         setResources(r.data)
         setSlots(s.data)
+        setSlotId((cur) => cur ?? s.data[0]?.id ?? null)
       })
       .catch(() => {})
   }, [])
@@ -62,64 +92,108 @@ export default function BookingPage() {
       .finally(() => setLoading(false))
   }, [resources, date])
 
+  const [toast, setToast] = useState('')
+  const [rulesAck, setRulesAck] = useState(false)
+
+  const slot = slots.find((s) => s.id === slotId) ?? null
   const labs = resources.filter((r) => r.kind === 'lab')
   const equipment = resources.filter((r) => r.kind === 'equipment')
 
+  function availFor(resource: Resource): number {
+    if (!slot) return resource.total_quantity
+    const sa = availability[resource.id]?.slots.find((x) => x.slot.id === slot.id)
+    return sa?.available ?? resource.total_quantity
+  }
+
+  const slotRemaining: Record<number, number> = {}
+  slots.forEach((s) => {
+    let sum = 0
+    resources.forEach((r) => {
+      if (!r.individual_bookable) return
+      const sa = availability[r.id]?.slots.find((x) => x.slot.id === s.id)
+      sum += sa?.available ?? r.total_quantity
+    })
+    slotRemaining[s.id] = sum
+  })
+
+  function pick(resource: Resource) {
+    if (!slot) return
+    setRulesAck(false)
+    setSelected({ resource, slot, available: availFor(resource) })
+  }
+
+  function closeBooking() {
+    setSelected(null)
+    setRulesAck(false)
+  }
+
   return (
-    <div className="min-h-full pb-14">
-      <Hero />
+    <div className="min-h-full bg-ink-50/50 pb-24">
+      <TopNav />
 
-      <main className="mx-auto mt-5 max-w-5xl px-5">
-        <DatePicker days={days} date={date} onChange={setDate} />
+      <main className="mx-auto max-w-2xl px-4 py-4 sm:py-5">
+        <PageHead />
+        <div className="mt-4 space-y-4">
+          <TimeSelector
+            days={days}
+            date={date}
+            onDate={setDate}
+            slots={slots}
+            slotId={slotId}
+            onSlot={setSlotId}
+            slotRemaining={slotRemaining}
+          />
 
-        {loading && resources.length === 0 ? (
-          <div className="py-24 text-center text-sm text-ink-400">加载中…</div>
-        ) : (
-          <div className="mt-7 space-y-8">
-            {labs.length > 0 && (
-              <Section title="录音实验室" subtitle="点击时段即可发起预约" kind="lab">
-                <div className="grid gap-3 sm:grid-cols-2">
+          {loading && resources.length === 0 ? (
+            <div className="py-20 text-center text-sm text-ink-400">加载中…</div>
+          ) : (
+            <>
+              {labs.length > 0 && (
+                <Section title="录音实验室" subtitle="图片可点击" kind="lab">
                   {labs.map((r) => (
-                    <ResourceCard
+                    <ResourceRow
                       key={r.id}
                       resource={r}
-                      slots={slots}
-                      availability={availability[r.id]}
-                      onPick={setSelected}
+                      available={availFor(r)}
+                      hasSlot={!!slot}
+                      onPick={pick}
                     />
                   ))}
-                </div>
-              </Section>
-            )}
+                </Section>
+              )}
 
-            {equipment.length > 0 && (
-              <Section title="拾音设备" subtitle="可借用的录音设备套装" kind="equipment">
-                <div className="grid gap-3 sm:grid-cols-2">
+              {equipment.length > 0 && (
+                <Section title="拾音设备" subtitle="可借用的同期录音设备套装" kind="equipment">
                   {equipment.map((r) => (
-                    <ResourceCard
+                    <ResourceRow
                       key={r.id}
                       resource={r}
-                      slots={slots}
-                      availability={availability[r.id]}
-                      onPick={setSelected}
+                      available={availFor(r)}
+                      hasSlot={!!slot}
+                      onPick={pick}
                     />
                   ))}
-                </div>
-              </Section>
-            )}
-          </div>
-        )}
-
-        <UsageRules />
+                </Section>
+              )}
+            </>
+          )}
+        </div>
       </main>
 
-      {selected && (
+      <BottomBar onToast={setToast} />
+      {toast && <Toast text={toast} onDone={() => setToast('')} />}
+
+      {selected && !rulesAck && (
+        <RulesModal onConfirm={() => setRulesAck(true)} onClose={closeBooking} />
+      )}
+
+      {selected && rulesAck && (
         <BookingModal
           date={date}
           selected={selected}
-          onClose={() => setSelected(null)}
+          onClose={closeBooking}
           onSuccess={() => {
-            setSelected(null)
+            closeBooking()
             api
               .get<ResourceAvailability>(`/availability/${selected.resource.id}`, {
                 params: { date },
@@ -134,78 +208,167 @@ export default function BookingPage() {
   )
 }
 
-function Hero() {
+function PageHead() {
   return (
-    <header className="pt-5">
-      <div className="mx-auto max-w-5xl px-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-white text-accent-600 shadow-card ring-1 ring-ink-200/70">
-              <MicIcon className="h-4 w-4" />
-            </span>
-            <span className="text-sm font-medium tracking-tight text-ink-700">
-              影视学院 · 录音实验室
-            </span>
-          </div>
-          <Link
-            to="/admin"
-            className="rounded-xl bg-white/70 px-3 py-1.5 text-sm font-medium text-ink-500 ring-1 ring-ink-200 transition hover:bg-white hover:text-ink-900"
-          >
-            后台管理
-          </Link>
-        </div>
+    <div className="pt-1">
+      <h1 className="text-xl font-semibold tracking-tight text-ink-900">录音实验室预约</h1>
+      <p className="mt-1 text-[13px] text-ink-500">河北科技大学影视学院录音系</p>
+    </div>
+  )
+}
 
-        <div className="mt-6 rounded-[1.5rem] border border-ink-200/70 bg-white/80 px-5 py-5 shadow-card backdrop-blur sm:px-6 sm:py-6">
-          <p className="eyebrow">Recording Lab</p>
-          <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-ink-950 sm:text-[2.15rem] sm:leading-[1.08]">
-                录音实验室预约
-              </h1>
-              <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-ink-500">
-                选择日期与时段即可预约录音棚或拾音设备，后台统一核销与管理。
-              </p>
-            </div>
-            <div className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-accent-50 px-3 py-2 text-[13px] text-accent-700 ring-1 ring-accent-100">
-              <CalendarIcon className="h-4 w-4" />
-              可提前 {BOOKING_WINDOW_DAYS} 天预约
-            </div>
-          </div>
+function RulesModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: () => void }) {
+  const [left, setLeft] = useState(3)
+  useEffect(() => {
+    if (left <= 0) return
+    const t = setTimeout(() => setLeft((v) => v - 1), 1000)
+    return () => clearTimeout(t)
+  }, [left])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-ink-900/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative flex max-h-[82vh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-pop">
+        <div className="border-b border-ink-100 px-5 py-4 text-center">
+          <h3 className="text-base font-semibold text-ink-900">必读须知</h3>
+          <p className="mt-0.5 text-[12px] text-ink-400">录音实验室使用规定</p>
         </div>
+        <div className="space-y-4 overflow-y-auto px-5 py-4">
+          {RULES.map((r, i) => (
+            <div key={r.title}>
+              <h4 className="text-[13px] font-semibold text-ink-900">
+                {['一', '二', '三'][i]}、{r.title}
+              </h4>
+              <ul className="mt-1.5 space-y-1.5">
+                {r.items.map((it, j) => (
+                  <li
+                    key={it}
+                    className="flex gap-1.5 text-[12.5px] leading-relaxed text-ink-500"
+                  >
+                    <span className="shrink-0 tabular-nums text-ink-400">{j + 1}.</span>
+                    <span>{it}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          <p className="rounded-lg bg-ink-50 px-3 py-2 text-[12px] text-ink-400">
+            ※ 可提前 {BOOKING_WINDOW_DAYS} 天预约，每日 08:00 开放最新 1 天可约时段
+          </p>
+        </div>
+        <div className="border-t border-ink-100 p-4">
+          <button
+            className="btn-primary w-full"
+            disabled={left > 0}
+            onClick={onConfirm}
+          >
+            {left > 0 ? `已读并确认以上内容（${left}）` : '已读并确认，开始预约'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Toast({ text, onDone }: { text: string; onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 2200)
+    return () => clearTimeout(t)
+  }, [onDone])
+  return (
+    <div className="fixed inset-x-0 bottom-24 z-50 flex justify-center px-4">
+      <div className="animate-fade-up rounded-full bg-ink-900/90 px-4 py-2 text-[13px] font-medium text-white shadow-pop backdrop-blur">
+        {text}
+      </div>
+    </div>
+  )
+}
+
+function BottomBar({ onToast }: { onToast: (t: string) => void }) {
+  const { installed, promptInstall } = useInstallPrompt()
+
+  async function onShare() {
+    const r = await shareApp()
+    if (r.status === 'copied') onToast('链接已复制，可粘贴到其他应用分享')
+    else if (r.status === 'unavailable') onToast('当前环境不支持分享')
+  }
+
+  async function onInstall() {
+    const r = await promptInstall()
+    if (r === 'unavailable') {
+      onToast('请在浏览器菜单选择「添加到主屏幕 / 安装」')
+    }
+  }
+
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-200 bg-white/90 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-2xl items-center gap-2.5 px-4 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))]">
+        <button className="btn-ghost flex-1" onClick={onShare}>
+          <ShareIcon className="h-4 w-4" /> 分享
+        </button>
+        {!installed && (
+          <button className="btn-primary flex-1" onClick={onInstall}>
+            <PhoneAddIcon className="h-4 w-4" /> 加入桌面快捷方式
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function TopNav() {
+  return (
+    <header className="sticky top-0 z-30 border-b border-ink-200 bg-white/85 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-2xl items-center gap-2.5 px-4 py-3">
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-ink-900 text-white">
+          <MicIcon className="h-3.5 w-3.5" />
+        </span>
+        <span className="text-[13px] font-medium tracking-tight text-ink-800">
+          影视学院 · 录音系
+        </span>
       </div>
     </header>
   )
 }
 
-function DatePicker({
+function TimeSelector({
   days,
   date,
-  onChange,
+  onDate,
+  slots,
+  slotId,
+  onSlot,
+  slotRemaining,
 }: {
   days: Date[]
   date: string
-  onChange: (d: string) => void
+  onDate: (d: string) => void
+  slots: Slot[]
+  slotId: number | null
+  onSlot: (id: number) => void
+  slotRemaining: Record<number, number>
 }) {
   return (
-    <div className="rounded-[1.35rem] border border-ink-200/70 bg-white/75 p-2.5 shadow-card backdrop-blur">
-      <div className="mb-2 flex items-center gap-2 px-1 text-[13px] font-medium text-ink-500">
-        <CalendarIcon className="h-4 w-4 text-accent-500" /> 选择日期
+    <section className="card p-4">
+      <div className="mb-3 flex items-center gap-2 text-sm font-medium text-ink-800">
+        <CalendarIcon className="h-4 w-4 text-ink-400" /> 选择时间
       </div>
-      <div className="flex gap-1.5 overflow-x-auto pb-1">
+
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
         {days.map((d, i) => {
           const ds = toDateStr(d)
           const active = ds === date
           return (
             <button
               key={ds}
-              onClick={() => onChange(ds)}
-              className={`flex min-w-[56px] flex-col items-center rounded-xl border px-2.5 py-1.5 transition ${
+              onClick={() => onDate(ds)}
+              className={`flex min-w-[60px] shrink-0 flex-col items-center rounded-xl border px-3 py-2 transition ${
                 active
-                  ? 'border-ink-900 bg-ink-900 text-white shadow-card'
-                  : 'border-transparent bg-ink-50/80 text-ink-500 hover:bg-white hover:text-ink-900 hover:ring-1 hover:ring-ink-200'
+                  ? 'border-ink-900 bg-ink-900 text-white'
+                  : 'border-ink-200 bg-white text-ink-500 hover:border-ink-300 hover:text-ink-900'
               }`}
             >
-              <span className={`text-[11px] ${active ? 'text-white/65' : 'text-ink-400'}`}>
+              <span className={`text-[11px] ${active ? 'text-white/70' : 'text-ink-400'}`}>
                 {i === 0 ? '今天' : WEEKDAYS[d.getDay()]}
               </span>
               <span className="mt-0.5 text-sm font-semibold tracking-tight">
@@ -215,7 +378,39 @@ function DatePicker({
           )
         })}
       </div>
-    </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2.5 border-t border-ink-100 pt-3.5">
+        {slots.map((s) => {
+          const active = s.id === slotId
+          const left = slotRemaining[s.id] ?? 0
+          const full = left <= 0
+          return (
+            <button
+              key={s.id}
+              onClick={() => onSlot(s.id)}
+              className={`rounded-xl border px-2 py-3 text-center transition ${
+                active
+                  ? 'border-ink-900 bg-ink-50 ring-1 ring-ink-900'
+                  : 'border-ink-200 bg-white hover:border-ink-300'
+              }`}
+            >
+              <span className="block text-[13px] font-semibold tabular-nums text-ink-900">
+                {s.start_time.slice(0, 5)} ~ {s.end_time.slice(0, 5)}
+              </span>
+              <span
+                className={`mt-1 block text-[12px] font-medium ${full ? 'text-ink-400' : 'text-sky-600'}`}
+              >
+                {full ? '已约满' : `剩余 ${left}`}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      <p className="mt-3 text-[12px] text-ink-400">
+        ※ 可提前 {BOOKING_WINDOW_DAYS} 天预约，每日 08:00 开放最新 1 天可约时段
+      </p>
+    </section>
   )
 }
 
@@ -232,109 +427,97 @@ function Section({
 }) {
   return (
     <section className="animate-fade-up">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight text-ink-950">{title}</h2>
-          <p className="mt-0.5 text-[13px] text-ink-400">{subtitle}</p>
-        </div>
-        <span className="grid h-8 w-8 place-items-center rounded-xl bg-white text-accent-500 ring-1 ring-ink-200/70">
+      <div className="mb-2.5 flex items-center gap-2 px-0.5">
+        <span className="grid h-6 w-6 place-items-center rounded-md bg-ink-900 text-white">
           {kind === 'lab' ? (
-            <HeadphonesIcon className="h-4 w-4" />
+            <HeadphonesIcon className="h-3.5 w-3.5" />
           ) : (
-            <SlidersIcon className="h-4 w-4" />
+            <SlidersIcon className="h-3.5 w-3.5" />
           )}
         </span>
+        <h2 className="text-[15px] font-semibold tracking-tight text-ink-900">{title}</h2>
+        <span className="text-[12px] text-ink-400">{subtitle}</span>
       </div>
-      {children}
+      <div className="space-y-3">{children}</div>
     </section>
   )
 }
 
-function ResourceCard({
+function ResourceRow({
   resource,
-  slots,
-  availability,
+  available,
+  hasSlot,
   onPick,
 }: {
   resource: Resource
-  slots: Slot[]
-  availability?: ResourceAvailability
-  onPick: (s: SelectedSlot) => void
+  available: number
+  hasSlot: boolean
+  onPick: (r: Resource) => void
 }) {
   const bookable = resource.individual_bookable
+  const full = available <= 0
+  const disabled = !bookable || !hasSlot || full
+  const status = !bookable ? '不可预约' : !hasSlot ? '请选时段' : full ? '已约满' : `剩 ${available}`
+
   return (
-    <div className="card p-3 transition duration-200 hover:-translate-y-0.5 hover:ring-accent-200">
-      <div className="flex gap-3">
-        <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-2xl bg-ink-100 ring-1 ring-inset ring-ink-200/70">
-          {resource.image_url ? (
-            <img
-              src={resource.image_url}
-              alt={resource.name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="grid h-full place-items-center bg-gradient-to-br from-accent-50 to-gold-50 text-accent-300">
-              {resource.kind === 'lab' ? (
-                <MicIcon className="h-7 w-7" />
-              ) : (
-                <SlidersIcon className="h-7 w-7" />
-              )}
-            </div>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="truncate text-[15px] font-semibold tracking-tight text-ink-950">
-              {resource.name}
-            </h3>
-            <span className="shrink-0 rounded-full bg-ink-50 px-2 py-0.5 text-[11px] font-medium text-ink-500 ring-1 ring-ink-200/70">
-              {resource.total_quantity} 名额
-            </span>
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onPick(resource)}
+      className={`card flex w-full items-center gap-3 p-3 text-left transition ${
+        disabled ? 'opacity-70' : 'hover:border-ink-300 hover:shadow-pop'
+      }`}
+    >
+      <div className="h-[68px] w-[92px] shrink-0 overflow-hidden rounded-lg bg-ink-100">
+        {resource.image_url ? (
+          <img
+            src={resource.image_url}
+            alt={resource.name}
+            loading="lazy"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="grid h-full place-items-center text-ink-300">
+            {resource.kind === 'lab' ? (
+              <MicIcon className="h-6 w-6" />
+            ) : (
+              <SlidersIcon className="h-6 w-6" />
+            )}
           </div>
-          <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-ink-500">
-            {resource.description || '暂无描述'}
-          </p>
-        </div>
+        )}
       </div>
 
-      {!bookable ? (
-        <div className="mt-3 flex items-center gap-2 rounded-2xl bg-ink-50 px-3 py-2 text-[13px] text-ink-400 ring-1 ring-inset ring-ink-200/60">
-          <LockIcon className="h-4 w-4" /> 学生个人不可预约
-        </div>
-      ) : (
-        <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-          {slots.map((slot) => {
-            const sa = availability?.slots.find((x) => x.slot.id === slot.id)
-            const avail = sa?.available ?? resource.total_quantity
-            const full = avail <= 0
-            return (
-              <button
-                key={slot.id}
-                disabled={full}
-                onClick={() => onPick({ resource, slot, available: avail })}
-                className={`rounded-xl border px-2.5 py-2 text-left transition ${
-                  full
-                    ? 'cursor-not-allowed border-ink-100 bg-ink-50 text-ink-300'
-                    : 'border-ink-200 bg-white text-ink-700 hover:border-accent-300 hover:bg-accent-50'
-                }`}
-              >
-                <span className="block text-[13px] font-semibold">{slot.name}</span>
-                <span className="mt-0.5 block text-[11px] text-ink-400">
-                  {slot.start_time}-{slot.end_time}
-                </span>
-                <span
-                  className={`mt-1 block text-[11px] font-medium ${
-                    full ? 'text-ink-300' : 'text-emerald-600'
-                  }`}
-                >
-                  {full ? '已约满' : `剩 ${avail}`}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      )}
-    </div>
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate text-[15px] font-semibold tracking-tight text-ink-900">
+          {resource.name}
+        </h3>
+        <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-ink-500">
+          {resource.description || '暂无描述'}
+        </p>
+        {!bookable && (
+          <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-ink-400">
+            <LockIcon className="h-3 w-3" /> 需指导老师带领使用
+          </span>
+        )}
+      </div>
+
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <span
+          className={`text-[12px] font-medium tabular-nums ${
+            !bookable || full ? 'text-ink-400' : 'text-ink-700'
+          }`}
+        >
+          {status}
+        </span>
+        <span
+          className={`rounded-full px-3 py-1 text-[12px] font-medium ${
+            disabled ? 'bg-ink-100 text-ink-400' : 'bg-ink-900 text-white'
+          }`}
+        >
+          预约
+        </span>
+      </div>
+    </button>
   )
 }
 
@@ -396,7 +579,7 @@ function BookingModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/45 p-0 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4">
-      <div className="max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-3xl bg-white p-4 shadow-pop sm:rounded-2xl sm:p-5">
+      <div className="max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-2xl bg-white p-4 shadow-pop sm:rounded-xl sm:p-5">
         {done ? (
           <div className="py-8 text-center">
             <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
@@ -467,23 +650,20 @@ function BookingModal({
                 />
               </Field>
               <Field label="录音人数">
-                <input
-                  type="number"
-                  min={1}
-                  className="input"
+                <Stepper
                   value={form.num_people}
-                  onChange={(e) => update('num_people', Number(e.target.value) || 1)}
+                  min={1}
+                  max={50}
+                  onChange={(v) => update('num_people', v)}
                 />
               </Field>
               {resource.kind === 'equipment' && (
                 <Field label={`借用数量（剩 ${selected.available}）`}>
-                  <input
-                    type="number"
+                  <Stepper
+                    value={form.quantity}
                     min={1}
                     max={selected.available}
-                    className="input"
-                    value={form.quantity}
-                    onChange={(e) => update('quantity', Number(e.target.value) || 1)}
+                    onChange={(v) => update('quantity', v)}
                   />
                 </Field>
               )}
@@ -540,42 +720,41 @@ function Field({
   )
 }
 
-function UsageRules() {
-  const rules = [
-    {
-      title: '使用时间',
-      body: '请严格按照预约时间段使用，避免超时影响后续人员。时段已包含设备预热、调试及整理时间。',
-    },
-    {
-      title: '操作规范',
-      body: '使用前请熟悉设备操作规程与安全注意事项，严禁擅自更改设备参数、连接线路或进行非授权操作。',
-    },
-    {
-      title: '记录与清洁',
-      body: '使用后请如实填写设备使用记录，整理麦克风、耳机、线材等设备，关闭电源，保持整洁有序。',
-    },
-  ]
+function Stepper({
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  value: number
+  min: number
+  max: number
+  onChange: (v: number) => void
+}) {
+  const clamp = (v: number) => Math.max(min, Math.min(max, v))
   return (
-    <section className="mt-10 animate-fade-up">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="eyebrow">Guidelines</p>
-          <h2 className="mt-1.5 text-[17px] font-semibold tracking-tight text-ink-900">
-            录音实验室使用规定
-          </h2>
-        </div>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-3">
-        {rules.map((r, i) => (
-          <div key={r.title} className="card p-5">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-accent-100 to-gold-100 text-[13px] font-semibold tabular-nums text-accent-600 ring-1 ring-accent-200/50">
-              {String(i + 1).padStart(2, '0')}
-            </span>
-            <h3 className="mt-3 text-sm font-semibold text-ink-800">{r.title}</h3>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-ink-500">{r.body}</p>
-          </div>
-        ))}
-      </div>
-    </section>
+    <div className="inline-flex items-center rounded-lg border border-ink-200 bg-white">
+      <button
+        type="button"
+        onClick={() => onChange(clamp(value - 1))}
+        disabled={value <= min}
+        className="grid h-9 w-9 place-items-center rounded-l-lg text-ink-600 transition hover:bg-ink-50 disabled:opacity-40"
+        aria-label="减少"
+      >
+        <MinusIcon className="h-4 w-4" />
+      </button>
+      <span className="w-12 text-center text-sm font-semibold tabular-nums text-ink-900">
+        {value}
+      </span>
+      <button
+        type="button"
+        onClick={() => onChange(clamp(value + 1))}
+        disabled={value >= max}
+        className="grid h-9 w-9 place-items-center rounded-r-lg text-ink-600 transition hover:bg-ink-50 disabled:opacity-40"
+        aria-label="增加"
+      >
+        <PlusIcon className="h-4 w-4" />
+      </button>
+    </div>
   )
 }

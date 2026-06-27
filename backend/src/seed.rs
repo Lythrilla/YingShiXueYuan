@@ -53,6 +53,16 @@ const DEFAULT_RESOURCES: &[(&str, &str, &str, i64, bool, i64)] = &[
     ),
 ];
 
+// (resource name, default image path served from the embedded frontend)
+const DEFAULT_IMAGES: &[(&str, &str)] = &[
+    ("全景声棚", "/labs/quanjingsheng.jpg"),
+    ("5.1 编辑室", "/labs/bianjishi.jpg"),
+    ("拟音棚", "/labs/niyinpeng.jpg"),
+    ("5.1 终混棚", "/labs/zhonghunpeng.jpg"),
+    ("同期拾音设备基础套装", "/labs/jichu.jpg"),
+    ("同期拾音设备进阶套装", "/labs/jinjie.jpg"),
+];
+
 pub fn seed(conn: &Connection) -> rusqlite::Result<()> {
     let slot_count: i64 = conn.query_row("SELECT COUNT(*) FROM time_slots", [], |r| r.get(0))?;
     if slot_count == 0 {
@@ -73,6 +83,15 @@ pub fn seed(conn: &Connection) -> rusqlite::Result<()> {
                 params![name, kind, desc, qty, *individual as i64, order, now_iso()],
             )?;
         }
+    }
+
+    // Backfill default photos for resources that still have no image set,
+    // so both fresh installs and existing databases show the lab photos.
+    for (name, image) in DEFAULT_IMAGES {
+        conn.execute(
+            "UPDATE resources SET image_url=?1 WHERE name=?2 AND image_url=''",
+            params![image, name],
+        )?;
     }
     Ok(())
 }

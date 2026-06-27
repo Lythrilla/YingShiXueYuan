@@ -16,45 +16,46 @@ body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #fbfaf7;
-  background-image: radial-gradient(circle at 20% 0%, rgba(232, 192, 105, 0.16), transparent 28%), linear-gradient(180deg, #fffaf3 0%, #fbfaf7 34%, #fbfaf7 100%);
-  background-attachment: fixed;
-  color: #29221d;
+  background-color: #ffffff;
+  color: #18181b;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
 }
 
 @layer base {
   ::selection {
-    background-color: rgba(219, 98, 56, 0.18);
+    background-color: rgba(24, 24, 27, 0.12);
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium tracking-tight transition duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium tracking-tight transition duration-150 disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-gradient-to-br from-accent-400 to-accent-600 text-white shadow-glow hover:from-accent-500 hover:to-accent-700 active:translate-y-0 active:scale-[0.98];
+    @apply btn bg-ink-900 text-white hover:bg-ink-800 active:scale-[0.99];
   }
   .btn-ghost {
-    @apply btn bg-white/80 text-ink-700 ring-1 ring-inset ring-ink-200 hover:bg-white hover:ring-ink-300;
+    @apply btn bg-white text-ink-700 ring-1 ring-inset ring-ink-200 hover:bg-ink-50;
   }
   .btn-danger {
-    @apply btn bg-white/80 text-rose-600 ring-1 ring-inset ring-rose-200 hover:bg-rose-50;
+    @apply btn bg-white text-rose-600 ring-1 ring-inset ring-rose-200 hover:bg-rose-50;
   }
   .input {
-    @apply w-full rounded-2xl border border-ink-200 bg-white/70 px-3.5 py-2.5 text-sm text-ink-900 outline-none transition placeholder:text-ink-400/70 focus:border-accent-300 focus:bg-white focus:ring-4 focus:ring-accent-500/10;
+    @apply w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 outline-none transition placeholder:text-ink-400 focus:border-ink-900 focus:ring-2 focus:ring-ink-900/10;
   }
   .label {
-    @apply mb-1.5 block text-[13px] font-medium text-ink-500;
+    @apply mb-1.5 block text-[13px] font-medium text-ink-600;
   }
   .card {
-    @apply rounded-2xl bg-white/90 shadow-card ring-1 ring-ink-200/60 backdrop-blur-sm;
+    @apply rounded-xl border border-ink-200 bg-white;
   }
   .badge {
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
   }
   .eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-accent-500;
+    @apply text-xs font-medium uppercase tracking-[0.22em] text-ink-400;
+  }
+  .display {
+    @apply font-semibold tracking-[-0.03em] text-ink-900;
   }
 }

@@ -56,26 +56,16 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
   }
 
   return (
-    <div className="relative grid min-h-full place-items-center overflow-hidden bg-warm-hero p-4">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.10]"
-        style={{
-          backgroundImage:
-            'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-          backgroundSize: '26px 26px',
-        }}
-      />
-      <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 animate-float rounded-full bg-gold-300/25 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-accent-300/20 blur-3xl" />
+    <div className="grid min-h-full place-items-center bg-ink-50 p-4">
       <form
         onSubmit={submit}
-        className="relative w-full max-w-sm animate-fade-up rounded-3xl bg-white/95 p-8 shadow-pop backdrop-blur"
+        className="w-full max-w-sm animate-fade-up rounded-xl border border-ink-200 bg-white p-8 shadow-soft"
       >
-        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-accent-400 to-accent-600 text-white shadow-glow">
+        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-ink-900 text-white">
           <MicIcon className="h-6 w-6" />
         </div>
-        <h1 className="mt-5 text-xl font-semibold tracking-tight text-ink-900">预约系统后台</h1>
-        <p className="mt-1 text-[13px] text-ink-400">录音实验室管理控制台</p>
+        <h1 className="mt-5 text-xl font-semibold tracking-tight text-ink-900">录音系预约后台</h1>
+        <p className="mt-1 text-[13px] text-ink-400">河北科技大学影视学院录音系</p>
 
         <div className="mt-7 space-y-4">
           <label className="block">
@@ -134,15 +124,15 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
 
   return (
     <div className="min-h-full">
-      <header className="sticky top-0 z-20 border-b border-ink-200/70 bg-white/80 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-ink-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-accent-50 text-accent-600 ring-1 ring-accent-100">
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-ink-900 text-white">
               <MicIcon className="h-[18px] w-[18px]" />
             </span>
             <div>
               <div className="text-sm font-semibold tracking-tight text-ink-900">
-                录音实验室 · 后台
+                河北科技大学影视学院录音系 · 后台
               </div>
               <div className="text-[11px] text-ink-400">预约管理控制台</div>
             </div>
@@ -159,14 +149,14 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       </header>
 
       <div className="mx-auto max-w-6xl px-5 py-6">
-        <nav className="mb-6 inline-flex gap-1 rounded-2xl bg-white/70 p-1 ring-1 ring-ink-200/70">
+        <nav className="mb-6 inline-flex gap-1 rounded-lg border border-ink-200 bg-white p-1">
           {TABS.map(([key, label]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`rounded-xl px-4 py-1.5 text-[13px] font-medium tracking-tight transition ${
+              className={`rounded-md px-4 py-1.5 text-[13px] font-medium tracking-tight transition ${
                 tab === key
-                  ? 'bg-ink-900 text-white shadow-card'
+                  ? 'bg-ink-900 text-white'
                   : 'text-ink-500 hover:text-ink-800'
               }`}
             >
@@ -520,7 +510,7 @@ function ResourcesTab() {
                 {r.image_url ? (
                   <img src={r.image_url} alt={r.name} className="h-full w-full object-cover" />
                 ) : (
-                  <div className="grid h-full place-items-center bg-gradient-to-br from-accent-50 to-gold-50 text-accent-300">
+                  <div className="grid h-full place-items-center bg-ink-100 text-ink-300">
                     <ImageIcon className="h-7 w-7" />
                   </div>
                 )}
@@ -608,7 +598,7 @@ function ResourcesTab() {
             </label>
             <div className="sm:col-span-2">
               <span className="label">资源图片</span>
-              <div className="rounded-2xl border border-ink-200 bg-white/70 p-3">
+              <div className="rounded-lg border border-ink-200 bg-ink-50 p-3">
                 <div className="grid gap-3 sm:grid-cols-[132px_1fr]">
                   <div className="h-20 overflow-hidden rounded-xl bg-white ring-1 ring-inset ring-ink-200">
                     {editing.image_url ? (
@@ -838,7 +828,7 @@ function Modal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/45 p-0 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4">
-      <div className="max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-3xl bg-white p-4 shadow-pop sm:rounded-2xl sm:p-5">
+      <div className="max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-2xl bg-white p-4 shadow-pop sm:rounded-xl sm:p-5">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold tracking-tight text-ink-900">{title}</h3>
           <button
