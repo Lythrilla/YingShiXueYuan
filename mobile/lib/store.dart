@@ -1,0 +1,86 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// 统一的本地存储（服务器地址、登录令牌、提醒偏好）。
+/// 同时被 UI isolate 与后台服务 isolate 读取，因此读前都先 `reload()`。
+class Store {
+  static const _kServerUrl = 'server_url';
+  static const _kToken = 'token';
+  static const _kUsername = 'username';
+
+  static const _kAlertSound = 'alert_sound';
+  static const _kAlertVibration = 'alert_vibration';
+  static const _kAlertFullscreen = 'alert_fullscreen';
+  static const _kAlertRelentless = 'alert_relentless';
+  static const _kPollSeconds = 'poll_seconds';
+  static const _kSeenPendingIds = 'seen_pending_ids';
+
+  static const defaultServerUrl = 'http://117.72.222.31:8888';
+
+  static Future<SharedPreferences> _prefs() async {
+    final p = await SharedPreferences.getInstance();
+    await p.reload();
+    return p;
+  }
+
+  // ---------- 连接 ----------
+  static Future<String> serverUrl() async =>
+      (await _prefs()).getString(_kServerUrl) ?? defaultServerUrl;
+
+  static Future<void> setServerUrl(String v) async =>
+      (await _prefs()).setString(_kServerUrl, v.trim());
+
+  static Future<String?> token() async => (await _prefs()).getString(_kToken);
+
+  static Future<void> setToken(String? v) async {
+    final p = await _prefs();
+    if (v == null) {
+      await p.remove(_kToken);
+    } else {
+      await p.setString(_kToken, v);
+    }
+  }
+
+  static Future<String?> username() async =>
+      (await _prefs()).getString(_kUsername);
+
+  static Future<void> setUsername(String v) async =>
+      (await _prefs()).setString(_kUsername, v);
+
+  // ---------- 提醒偏好 ----------
+  static Future<bool> alertSound() async =>
+      (await _prefs()).getBool(_kAlertSound) ?? true;
+  static Future<void> setAlertSound(bool v) async =>
+      (await _prefs()).setBool(_kAlertSound, v);
+
+  static Future<bool> alertVibration() async =>
+      (await _prefs()).getBool(_kAlertVibration) ?? true;
+  static Future<void> setAlertVibration(bool v) async =>
+      (await _prefs()).setBool(_kAlertVibration, v);
+
+  static Future<bool> alertFullscreen() async =>
+      (await _prefs()).getBool(_kAlertFullscreen) ?? true;
+  static Future<void> setAlertFullscreen(bool v) async =>
+      (await _prefs()).setBool(_kAlertFullscreen, v);
+
+  /// 是否「不处理就一直响」——每个轮询周期只要有待处理就重复提醒。
+  static Future<bool> alertRelentless() async =>
+      (await _prefs()).getBool(_kAlertRelentless) ?? true;
+  static Future<void> setAlertRelentless(bool v) async =>
+      (await _prefs()).setBool(_kAlertRelentless, v);
+
+  static Future<int> pollSeconds() async =>
+      (await _prefs()).getInt(_kPollSeconds) ?? 20;
+  static Future<void> setPollSeconds(int v) async =>
+      (await _prefs()).setInt(_kPollSeconds, v.clamp(10, 600));
+
+  // ---------- 跨 isolate 共享：已提醒过的待处理 ID ----------
+  static Future<Set<int>> seenPendingIds() async {
+    final list = (await _prefs()).getStringList(_kSeenPendingIds) ?? const [];
+    return list.map(int.parse).toSet();
+  }
+
+  static Future<void> setSeenPendingIds(Set<int> ids) async {
+    await (await _prefs())
+        .setStringList(_kSeenPendingIds, ids.map((e) => e.toString()).toList());
+  }
+}
