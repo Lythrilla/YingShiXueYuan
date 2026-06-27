@@ -23,6 +23,7 @@ class BackgroundPoller {
         onStart: onStart,
         isForegroundMode: true,
         autoStart: true,
+        autoStartOnBoot: true,
         notificationChannelId: Notifications.serviceChannelId,
         initialNotificationTitle: '录音预约 · 监控中',
         initialNotificationContent: '正在监控新的待处理预约',
@@ -38,8 +39,12 @@ class BackgroundPoller {
   }
 
   static Future<void> start() async {
-    if (!await _service.isRunning()) {
-      await _service.startService();
+    try {
+      if (!await _service.isRunning()) {
+        await _service.startService();
+      }
+    } catch (e) {
+      debugPrint('background service start failed: $e');
     }
   }
 
