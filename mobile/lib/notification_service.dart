@@ -12,9 +12,11 @@ class Notifications {
       FlutterLocalNotificationsPlugin();
 
   static const summaryChannelId = 'yingshi_summary';
-  static const alertChannelId = 'yingshi_alert';
+  // _v2：声音 / 震动改由 AlertEngine 统一处理（用用户选的铃声、可循环），
+  // 通道本身静音；通道一旦创建声音不可变，故升级时换新 id 并删除旧通道。
+  static const alertChannelId = 'yingshi_alert_v2';
   static const serviceChannelId = 'yingshi_service';
-  static const doorChannelId = 'yingshi_door';
+  static const doorChannelId = 'yingshi_door_v2';
 
   static const int summaryNotificationId = 9990;
   static const int bookingIdBase = 100000; // 每条待处理 = base + bookingId
@@ -39,15 +41,18 @@ class Notifications {
     final android11 = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     if (android11 != null) {
-      // 高优先级、带自定义铃声、可触发全屏的提醒通道。
+      // 删除旧的带固定铃声通道，改用静音通道（声音/震动交给 AlertEngine）。
+      await android11.deleteNotificationChannel('yingshi_alert');
+      await android11.deleteNotificationChannel('yingshi_door');
+      // 高优先级、可触发全屏的提醒通道；通道静音，铃声/震动由 AlertEngine 处理，
+      // 这样才能用用户在设置里选择的系统铃声并循环。
       await android11.createNotificationChannel(const AndroidNotificationChannel(
         alertChannelId,
         '新预约强提醒',
-        description: '有新的待处理预约时的强提醒（声音 / 震动 / 全屏）',
+        description: '有新的待处理预约时的强提醒（全屏）',
         importance: Importance.max,
-        playSound: true,
-        sound: RawResourceAndroidNotificationSound('alarm'),
-        enableVibration: true,
+        playSound: false,
+        enableVibration: false,
         enableLights: true,
       ));
       await android11
@@ -74,9 +79,8 @@ class Notifications {
         '开门提醒',
         description: '预约时段临近时提醒负责人去开门',
         importance: Importance.max,
-        playSound: true,
-        sound: RawResourceAndroidNotificationSound('alarm'),
-        enableVibration: true,
+        playSound: false,
+        enableVibration: false,
         enableLights: true,
       ));
     }
@@ -98,10 +102,7 @@ class Notifications {
       priority: Priority.max,
       ongoing: true, // 不可被滑动清除
       autoCancel: false,
-      playSound: playSound,
-      sound: playSound
-          ? const RawResourceAndroidNotificationSound('alarm')
-          : null,
+      playSound: false, // 声音由 AlertEngine 统一播放（用户铃声 + 循环）
       fullScreenIntent: fullScreen,
       category: AndroidNotificationCategory.alarm,
       visibility: NotificationVisibility.public,
@@ -139,10 +140,7 @@ class Notifications {
       priority: Priority.max,
       ongoing: false,
       autoCancel: true,
-      playSound: playSound,
-      sound: playSound
-          ? const RawResourceAndroidNotificationSound('alarm')
-          : null,
+      playSound: false, // 声音由 AlertEngine 统一播放（用户铃声 + 循环）
       fullScreenIntent: fullScreen,
       category: AndroidNotificationCategory.alarm,
       visibility: NotificationVisibility.public,

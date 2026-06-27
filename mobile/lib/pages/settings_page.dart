@@ -20,6 +20,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _fullscreen = true;
   bool _relentless = true;
   bool _notifGranted = true;
+  bool _fsiGranted = true;
   String _ringtone = '';
   String _server = '';
   bool _loaded = false;
@@ -36,6 +37,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _fullscreen = await Store.alertFullscreen();
     _relentless = await Store.alertRelentless();
     _notifGranted = await AppPermissions.notificationGranted();
+    _fsiGranted = await Native.canUseFullScreenIntent();
     _ringtone = await Store.ringtoneTitle();
     _server = await Store.serverUrl();
     if (mounted) setState(() => _loaded = true);
@@ -50,6 +52,16 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _notifyService() => BackgroundPoller.settingsChanged();
+
+  Future<void> _ensureFullScreenPermission() async {
+    if (await Native.canUseFullScreenIntent()) {
+      if (mounted) setState(() => _fsiGranted = true);
+      return;
+    }
+    await Native.requestFullScreenIntent();
+    final granted = await Native.canUseFullScreenIntent();
+    if (mounted) setState(() => _fsiGranted = granted);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,7 +133,29 @@ class _SettingsPageState extends State<SettingsPage> {
                         (v) async {
                       await Store.setAlertFullscreen(v);
                       setState(() => _fullscreen = v);
+                      if (v) await _ensureFullScreenPermission();
                     }),
+                    if (_fullscreen && !_fsiGranted) ...[
+                      _divider(),
+                      ListTile(
+                        onTap: _ensureFullScreenPermission,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 4),
+                        leading: const Icon(Icons.warning_amber_rounded,
+                            color: AppColors.rose600),
+                        title: const Text('全屏通知权限未开启',
+                            style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.rose600)),
+                        subtitle: const Text(
+                            'Android 14+ 需手动允许，否则锁屏来电式弹窗不会出现。点此前往开启',
+                            style:
+                                TextStyle(fontSize: 12, color: AppColors.ink400)),
+                        trailing: const Icon(Icons.chevron_right,
+                            color: AppColors.rose600),
+                      ),
+                    ],
                   ]),
                 ),
                 const SizedBox(height: 18),
