@@ -11,7 +11,7 @@ import {
   type Slot,
   type Stats,
 } from '../api'
-import { formatDateTime, STATUS_META } from '../lib'
+import { formatDateTime, STATUS_META, toDateStr } from '../lib'
 import {
   ArrowLeftIcon,
   CloseIcon,
@@ -25,7 +25,7 @@ import {
   UploadIcon,
 } from '../icons'
 
-type Tab = 'bookings' | 'resources' | 'slots'
+type Tab = 'overview' | 'bookings' | 'resources' | 'slots'
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(!!getToken())
@@ -109,13 +109,14 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
 }
 
 const TABS: [Tab, string][] = [
+  ['overview', '数据概览'],
   ['bookings', '预约管理'],
   ['resources', '实验室 / 设备'],
   ['slots', '时间段'],
 ]
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<Tab>('bookings')
+  const [tab, setTab] = useState<Tab>('overview')
 
   function logout() {
     clearToken()
@@ -165,9 +166,234 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
           ))}
         </nav>
 
+        {tab === 'overview' && <OverviewTab />}
         {tab === 'bookings' && <BookingsTab />}
         {tab === 'resources' && <ResourcesTab />}
         {tab === 'slots' && <SlotsTab />}
+      </div>
+    </div>
+  )
+}
+
+/* ------------------------- Overview ------------------------- */
+function downloadExport() {
+  const token = getToken()
+  fetch('/api/admin/export', { headers: { Authorization: `Bearer ${token}` } })
+    .then((r) => r.blob())
+    .then((blob) => {
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `预约报表_${new Date().toISOString().slice(0, 10)}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+    })
+}
+
+function OverviewTab() {
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [stats, setStats] = useState<Stats | null>(null)
+  const [resources, setResources] = useState<Resource[]>([])
+  const [slots, setSlots] = useState<Slot[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      api.get<Booking[]>('/admin/bookings'),
+      api.get<Stats>('/admin/stats'),
+      api.get<Resource[]>('/admin/resources'),
+      api.get<Slot[]>('/admin/slots'),
+    ])
+      .then(([b, s, r, sl]) => {
+        setBookings(b.data)
+        setStats(s.data)
+        setResources(r.data)
+        setSlots(sl.data)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const active = bookings.filter((b) => b.status !== 'cancelled')
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const trend = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date(today)
+    d.setDate(today.getDate() - (13 - i))
+    const key = toDateStr(d)
+    return {
+      label: `${d.getMonth() + 1}/${d.getDate()}`,
+      value: active.filter((b) => b.date === key).length,
+    }
+  })
+
+  const byResource = resources
+    .map((r) => ({
+      label: r.name,
+      value: active.filter((b) => b.resource_id === r.id).length,
+    }))
+    .sort((a, b) => b.value - a.value)
+
+  const bySlot = slots.map((s) => ({
+    label: s.name,
+    value: active.filter((b) => b.slot_id === s.id).length,
+  }))
+
+  const statusSegments = [
+    { label: '待核销', value: stats?.booked ?? 0, color: '#f59e0b' },
+    { label: '已核销', value: stats?.verified ?? 0, color: '#10b981' },
+    { label: '已取消', value: stats?.cancelled ?? 0, color: '#94a3b8' },
+  ]
+
+  if (loading) {
+    return <div className="py-24 text-center text-sm text-ink-300">加载中…</div>
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="eyebrow">Overview</p>
+          <h2 className="mt-1 text-[17px] font-semibold tracking-tight text-ink-900">数据概览</h2>
+        </div>
+        <button className="btn-primary" onClick={downloadExport}>
+          <DownloadIcon className="h-4 w-4" /> 导出 Excel
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <StatCard label="总预约" value={stats?.total ?? 0} tone="ink" />
+        <StatCard label="待核销" value={stats?.booked ?? 0} tone="amber" />
+        <StatCard label="已核销" value={stats?.verified ?? 0} tone="emerald" />
+        <StatCard label="已取消" value={stats?.cancelled ?? 0} tone="slate" />
+        <StatCard label="今日预约" value={stats?.today ?? 0} tone="accent" />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ChartCard title="近 14 天预约趋势" subtitle="不含已取消">
+          <VBarChart data={trend} />
+        </ChartCard>
+        <ChartCard title="状态占比" subtitle="全部预约">
+          <Donut segments={statusSegments} />
+        </ChartCard>
+        <ChartCard title="各实验室 / 设备预约量" subtitle="不含已取消">
+          <HBarChart data={byResource} />
+        </ChartCard>
+        <ChartCard title="各时段预约分布" subtitle="不含已取消">
+          <HBarChart data={bySlot} />
+        </ChartCard>
+      </div>
+    </div>
+  )
+}
+
+function ChartCard({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string
+  subtitle?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="card p-4">
+      <div className="mb-4 flex items-baseline justify-between">
+        <h3 className="text-sm font-semibold tracking-tight text-ink-900">{title}</h3>
+        {subtitle && <span className="text-[11px] text-ink-400">{subtitle}</span>}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function VBarChart({ data }: { data: { label: string; value: number }[] }) {
+  const max = Math.max(1, ...data.map((d) => d.value))
+  return (
+    <div className="flex h-44 items-end gap-1.5">
+      {data.map((d) => (
+        <div key={d.label} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
+          <span className="text-[10px] tabular-nums text-ink-400">{d.value || ''}</span>
+          <div
+            className="w-full max-w-[18px] rounded-t bg-ink-900"
+            style={{ height: `${Math.max(2, (d.value / max) * 100)}%` }}
+          />
+          <span className="text-[9px] tabular-nums text-ink-400">{d.label}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function HBarChart({ data }: { data: { label: string; value: number }[] }) {
+  const max = Math.max(1, ...data.map((d) => d.value))
+  if (data.length === 0) {
+    return <div className="py-8 text-center text-[13px] text-ink-300">暂无数据</div>
+  }
+  return (
+    <div className="space-y-3">
+      {data.map((d) => (
+        <div key={d.label} className="flex items-center gap-3">
+          <span className="w-28 shrink-0 truncate text-[12px] text-ink-600">{d.label}</span>
+          <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-ink-100">
+            <div
+              className="h-full rounded-full bg-ink-900"
+              style={{ width: `${(d.value / max) * 100}%` }}
+            />
+          </div>
+          <span className="w-7 shrink-0 text-right text-[12px] tabular-nums text-ink-500">
+            {d.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function Donut({ segments }: { segments: { label: string; value: number; color: string }[] }) {
+  const total = segments.reduce((s, x) => s + x.value, 0)
+  const r = 42
+  const c = 2 * Math.PI * r
+  let acc = 0
+  return (
+    <div className="flex items-center gap-5">
+      <div className="relative h-32 w-32 shrink-0">
+        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+          <circle cx="50" cy="50" r={r} fill="none" stroke="#f1f1f2" strokeWidth="13" />
+          {total > 0 &&
+            segments.map((s) => {
+              const frac = s.value / total
+              const dash = `${frac * c} ${c}`
+              const offset = -acc * c
+              acc += frac
+              return (
+                <circle
+                  key={s.label}
+                  cx="50"
+                  cy="50"
+                  r={r}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth="13"
+                  strokeDasharray={dash}
+                  strokeDashoffset={offset}
+                />
+              )
+            })}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-xl font-semibold tabular-nums text-ink-900">{total}</span>
+          <span className="text-[10px] text-ink-400">总计</span>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {segments.map((s) => (
+          <div key={s.label} className="flex items-center gap-2 text-[13px]">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+            <span className="text-ink-600">{s.label}</span>
+            <span className="tabular-nums font-medium text-ink-900">{s.value}</span>
+          </div>
+        ))}
       </div>
     </div>
   )
