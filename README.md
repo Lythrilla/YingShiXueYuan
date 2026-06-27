@@ -70,7 +70,25 @@ npm run dev      # http://localhost:5173
 
 ## 配置
 
-后端可通过环境变量覆盖默认配置：
+### 配置文件（推荐）
+
+首次启动时，程序会在**可执行文件同级目录**自动生成一份 `config.toml`，可直接编辑其中的管理员账号 / 密码、端口等，**修改后重启程序即可生效**：
+
+```toml
+admin_username = "admin"
+admin_password = "admin123"   # 请务必修改成自己的密码
+secret_key = "yingshi-recording-lab-secret-key-change-me"
+token_max_age = 43200          # 登录令牌有效期（秒），默认 12 小时
+host = "127.0.0.1"             # 局域网访问改为 "0.0.0.0"
+port = 8010
+open_browser = true            # 启动时是否自动打开浏览器
+```
+
+可用 `CONFIG_PATH` 环境变量指定其他配置文件路径。
+
+### 环境变量（优先级高于配置文件）
+
+下列环境变量会覆盖配置文件与默认值：
 
 | 变量 | 说明 | 默认 |
 | --- | --- | --- |
