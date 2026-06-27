@@ -13,7 +13,6 @@ import '../widgets/ui.dart';
 import 'admins_page.dart';
 import 'login_page.dart';
 import 'logs_page.dart';
-import 'resources_page.dart';
 import 'settings_page.dart';
 import 'shifts_page.dart';
 import 'slots_page.dart';
@@ -127,14 +126,11 @@ class _MorePageState extends State<MorePage> {
           ),
         ),
         const SizedBox(height: 18),
-        const SectionTitle('资源与排期'),
+        const SectionTitle('排期与开门'),
         AppCard(
           padding: EdgeInsets.zero,
           child: Column(
             children: [
-              _tile(Icons.meeting_room_outlined, '实验室 / 设备',
-                  '增删改、图片、负责人', () => _go(const ResourcesPage())),
-              _divider(),
               _tile(Icons.schedule_outlined, '时间段', '管理可预约的时段',
                   () => _go(const SlotsPage())),
               _divider(),
@@ -177,7 +173,7 @@ class _MorePageState extends State<MorePage> {
           child: Column(
             children: [
               _tile(Icons.notifications_active_outlined, '提醒设置',
-                  '推送方式、铃声、震动', () => _go(const SettingsPage())),
+                  '铃声、震动、全屏弹窗', () => _go(const SettingsPage())),
               _divider(),
               _tile(Icons.logout, '退出登录', '', _logout,
                   danger: true),

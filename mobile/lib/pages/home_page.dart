@@ -32,10 +32,6 @@ class _HomePageState extends State<HomePage> {
     _subs.add(BackgroundPoller.instance.on('update').listen((_) {
       if (mounted) bumpRefresh();
     }));
-    _subs.add(BackgroundPoller.instance.on('sse').listen((event) {
-      final connected = (event?['connected'] ?? false) as bool;
-      appConnected.value = connected;
-    }));
     _subs.add(BackgroundPoller.instance.on('door').listen((event) {
       if (event != null) _showDoorBanner(event);
     }));
@@ -65,7 +61,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      _scaffold('数据概览', const OverviewTab(), showStatus: true),
+      _scaffold('数据概览', const OverviewTab()),
       _scaffold('预约管理', const BookingsTab()),
       const ResourcesPage(),
       _scaffold('更多', const MorePage()),
@@ -99,7 +95,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _scaffold(String title, Widget body, {bool showStatus = false}) {
+  Widget _scaffold(String title, Widget body) {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 16,
@@ -115,7 +111,6 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         actions: [
-          if (showStatus) _connectionChip(),
           IconButton(
             tooltip: '提醒设置',
             icon: const Icon(Icons.settings_outlined, color: AppColors.ink700),
@@ -126,34 +121,6 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       body: body,
-    );
-  }
-
-  Widget _connectionChip() {
-    return ValueListenableBuilder<bool>(
-      valueListenable: appConnected,
-      builder: (context, connected, child) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            children: [
-              Container(
-                height: 8,
-                width: 8,
-                decoration: BoxDecoration(
-                    color: connected
-                        ? AppColors.emerald500
-                        : AppColors.ink300,
-                    shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 5),
-              Text(connected ? '实时' : '连接中',
-                  style: const TextStyle(
-                      fontSize: 12, color: AppColors.ink400)),
-            ],
-          ),
-        );
-      },
     );
   }
 }

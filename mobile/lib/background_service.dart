@@ -75,8 +75,6 @@ Future<void> onStart(ServiceInstance service) async {
     sse = SseClient(
       uri: api.sseUri(),
       onEvent: (data) => _onSseEvent(service, data),
-      onState: (connected) =>
-          service.invoke('sse', {'connected': connected}),
     )..start();
   }
 
@@ -187,14 +185,13 @@ Future<void> _poll(ServiceInstance service) async {
     }
 
     if (service is AndroidServiceInstance) {
-      final secs = await Store.pollSeconds();
       await service.setForegroundNotificationInfo(
         title: pendingIds.isEmpty
             ? '录音预约 · 监控中'
             : '${pendingIds.length} 条预约待处理',
         content: pendingIds.isEmpty
-            ? '每 ${secs}s 检查一次，暂无待处理'
-            : '处理后提醒才会消失 · 每 ${secs}s 刷新',
+            ? '实时监控中，暂无待处理预约'
+            : '处理后提醒才会消失',
       );
     }
 
