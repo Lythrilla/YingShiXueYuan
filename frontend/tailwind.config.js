@@ -48,9 +48,11 @@ export default {
         },
       },
       boxShadow: {
-        card: '0 1px 2px rgba(24, 24, 27, 0.04)',
-        soft: '0 4px 14px -8px rgba(24, 24, 27, 0.12)',
-        pop: '0 16px 40px -20px rgba(24, 24, 27, 0.22)',
+        card: '0 1px 2px rgba(60, 42, 30, 0.04), 0 10px 26px -22px rgba(60, 42, 30, 0.24)',
+        soft: '0 18px 48px -26px rgba(60, 42, 30, 0.26)',
+        pop: '0 30px 70px -28px rgba(60, 42, 30, 0.34)',
+        glow: '0 18px 42px -22px rgba(219, 98, 56, 0.55)',
+        glass: '0 18px 52px -34px rgba(74, 45, 28, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.72)',
       },
       keyframes: {
         'fade-up': {

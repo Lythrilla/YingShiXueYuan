@@ -128,10 +128,12 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="min-h-full bg-ink-50/50 pb-24">
+    <div className="relative min-h-full overflow-hidden pb-24">
+      <div className="pointer-events-none fixed left-[-8rem] top-[-10rem] h-72 w-72 rounded-full bg-accent-300/30 blur-[88px]" />
+      <div className="pointer-events-none fixed right-[-7rem] top-8 h-80 w-80 rounded-full bg-gold-300/35 blur-[96px]" />
       <TopNav />
 
-      <main className="mx-auto max-w-2xl px-4 py-4 sm:py-5">
+      <main className="relative mx-auto max-w-2xl px-4 py-4 sm:py-5">
         <PageHead />
         <div className="mt-4 space-y-4">
           <TimeSelector
@@ -210,9 +212,9 @@ export default function BookingPage() {
 
 function PageHead() {
   return (
-    <div className="pt-1">
-      <h1 className="text-xl font-semibold tracking-tight text-ink-900">录音实验室预约</h1>
-      <p className="mt-1 text-[13px] text-ink-500">河北科技大学影视学院录音系</p>
+    <div className="rounded-[1.6rem] border border-white/70 bg-white/45 px-5 py-5 shadow-glass backdrop-blur-2xl">
+      <h1 className="display text-2xl">录音实验室预约</h1>
+      <p className="mt-1 text-[13px] text-ink-500">河北科技大学影视学院录音系 · 清爽预约界面</p>
     </div>
   )
 }
@@ -227,9 +229,9 @@ function RulesModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: ()
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-ink-900/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative flex max-h-[82vh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-pop">
-        <div className="border-b border-ink-100 px-5 py-4 text-center">
+      <div className="absolute inset-0 bg-ink-900/35 backdrop-blur-xl" onClick={onClose} />
+      <div className="relative flex max-h-[82vh] w-full max-w-md flex-col overflow-hidden rounded-[1.4rem] border border-white/70 bg-white/65 shadow-pop backdrop-blur-2xl">
+        <div className="border-b border-white/55 px-5 py-4 text-center">
           <h3 className="text-base font-semibold text-ink-900">必读须知</h3>
           <p className="mt-0.5 text-[12px] text-ink-400">录音实验室使用规定</p>
         </div>
@@ -252,7 +254,7 @@ function RulesModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: ()
               </ul>
             </div>
           ))}
-          <p className="rounded-lg bg-ink-50 px-3 py-2 text-[12px] text-ink-400">
+          <p className="rounded-2xl border border-white/60 bg-white/40 backdrop-blur-xl px-3 py-2 text-[12px] text-ink-400">
             ※ 可提前 {BOOKING_WINDOW_DAYS} 天预约，每日 08:00 开放最新 1 天可约时段
           </p>
         </div>
@@ -277,7 +279,7 @@ function Toast({ text, onDone }: { text: string; onDone: () => void }) {
   }, [onDone])
   return (
     <div className="fixed inset-x-0 bottom-24 z-50 flex justify-center px-4">
-      <div className="animate-fade-up rounded-full bg-ink-900/90 px-4 py-2 text-[13px] font-medium text-white shadow-pop backdrop-blur">
+      <div className="animate-fade-up rounded-full border border-white/30 bg-ink-900/85 px-4 py-2 text-[13px] font-medium text-white shadow-pop backdrop-blur-xl">
         {text}
       </div>
     </div>
@@ -301,7 +303,7 @@ function BottomBar({ onToast }: { onToast: (t: string) => void }) {
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-200 bg-white/90 backdrop-blur-xl">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/60 bg-white/45 shadow-glass backdrop-blur-2xl">
       <div className="mx-auto flex max-w-2xl items-center gap-2.5 px-4 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))]">
         <button className="btn-ghost flex-1" onClick={onShare}>
           <ShareIcon className="h-4 w-4" /> 分享
@@ -318,9 +320,9 @@ function BottomBar({ onToast }: { onToast: (t: string) => void }) {
 
 function TopNav() {
   return (
-    <header className="sticky top-0 z-30 border-b border-ink-200 bg-white/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-white/55 bg-white/45 shadow-glass backdrop-blur-2xl">
       <div className="mx-auto flex max-w-2xl items-center gap-2.5 px-4 py-3">
-        <span className="grid h-7 w-7 place-items-center rounded-full bg-ink-900 text-white">
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-white/65 text-accent-600 shadow-card ring-1 ring-white/70">
           <MicIcon className="h-3.5 w-3.5" />
         </span>
         <span className="text-[13px] font-medium tracking-tight text-ink-800">
@@ -351,7 +353,7 @@ function TimeSelector({
   return (
     <section className="card p-4">
       <div className="mb-3 flex items-center gap-2 text-sm font-medium text-ink-800">
-        <CalendarIcon className="h-4 w-4 text-ink-400" /> 选择时间
+        <CalendarIcon className="h-4 w-4 text-ink-400" /> 选择日期与时段
       </div>
 
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
@@ -364,8 +366,8 @@ function TimeSelector({
               onClick={() => onDate(ds)}
               className={`flex min-w-[60px] shrink-0 flex-col items-center rounded-xl border px-3 py-2 transition ${
                 active
-                  ? 'border-ink-900 bg-ink-900 text-white'
-                  : 'border-ink-200 bg-white text-ink-500 hover:border-ink-300 hover:text-ink-900'
+                  ? 'border-white/80 bg-gradient-to-br from-ink-900 to-accent-600 text-white shadow-glow'
+                  : 'border-white/60 bg-white/35 text-ink-500 backdrop-blur-xl hover:bg-white/65 hover:text-ink-950'
               }`}
             >
               <span className={`text-[11px] ${active ? 'text-white/70' : 'text-ink-400'}`}>
@@ -379,7 +381,7 @@ function TimeSelector({
         })}
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-2.5 border-t border-ink-100 pt-3.5">
+      <div className="mt-3 grid grid-cols-3 gap-2.5 border-t border-white/55 pt-3.5">
         {slots.map((s) => {
           const active = s.id === slotId
           const left = slotRemaining[s.id] ?? 0
@@ -390,8 +392,8 @@ function TimeSelector({
               onClick={() => onSlot(s.id)}
               className={`rounded-xl border px-2 py-3 text-center transition ${
                 active
-                  ? 'border-ink-900 bg-ink-50 ring-1 ring-ink-900'
-                  : 'border-ink-200 bg-white hover:border-ink-300'
+                  ? 'border-white/80 bg-white/70 shadow-card ring-1 ring-accent-300'
+                  : 'border-white/60 bg-white/35 backdrop-blur-xl hover:bg-white/65 hover:shadow-card'
               }`}
             >
               <span className="block text-[13px] font-semibold tabular-nums text-ink-900">
@@ -428,7 +430,7 @@ function Section({
   return (
     <section className="animate-fade-up">
       <div className="mb-2.5 flex items-center gap-2 px-0.5">
-        <span className="grid h-6 w-6 place-items-center rounded-md bg-ink-900 text-white">
+        <span className="grid h-6 w-6 place-items-center rounded-full border border-white/70 bg-white/45 text-accent-500 shadow-card backdrop-blur-xl">
           {kind === 'lab' ? (
             <HeadphonesIcon className="h-3.5 w-3.5" />
           ) : (
@@ -465,10 +467,10 @@ function ResourceRow({
       disabled={disabled}
       onClick={() => onPick(resource)}
       className={`card flex w-full items-center gap-3 p-3 text-left transition ${
-        disabled ? 'opacity-70' : 'hover:border-ink-300 hover:shadow-pop'
+        disabled ? 'opacity-70' : 'hover:bg-white/60 hover:shadow-pop'
       }`}
     >
-      <div className="h-[68px] w-[92px] shrink-0 overflow-hidden rounded-lg bg-ink-100">
+      <div className="h-[68px] w-[92px] shrink-0 overflow-hidden rounded-2xl bg-white/45 shadow-card ring-1 ring-white/70 backdrop-blur-xl">
         {resource.image_url ? (
           <img
             src={resource.image_url}
@@ -477,7 +479,7 @@ function ResourceRow({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="grid h-full place-items-center text-ink-300">
+          <div className="grid h-full place-items-center bg-gradient-to-br from-white/70 to-accent-50 text-accent-400">
             {resource.kind === 'lab' ? (
               <MicIcon className="h-6 w-6" />
             ) : (
@@ -511,7 +513,7 @@ function ResourceRow({
         </span>
         <span
           className={`rounded-full px-3 py-1 text-[12px] font-medium ${
-            disabled ? 'bg-ink-100 text-ink-400' : 'bg-ink-900 text-white'
+            disabled ? 'bg-white/35 text-ink-400 ring-1 ring-white/50' : 'bg-gradient-to-br from-ink-900 to-accent-700 text-white shadow-card'
           }`}
         >
           预约
@@ -578,8 +580,8 @@ function BookingModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/45 p-0 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4">
-      <div className="max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-2xl bg-white p-4 shadow-pop sm:rounded-xl sm:p-5">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/35 p-0 backdrop-blur-xl animate-fade-in sm:items-center sm:p-4">
+      <div className="max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-[1.4rem] border border-white/70 bg-white/65 p-4 shadow-pop backdrop-blur-2xl sm:rounded-[1.4rem] sm:p-5">
         {done ? (
           <div className="py-8 text-center">
             <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
@@ -733,12 +735,12 @@ function Stepper({
 }) {
   const clamp = (v: number) => Math.max(min, Math.min(max, v))
   return (
-    <div className="inline-flex items-center rounded-lg border border-ink-200 bg-white">
+    <div className="inline-flex items-center rounded-2xl border border-white/70 bg-white/45 shadow-card backdrop-blur-xl">
       <button
         type="button"
         onClick={() => onChange(clamp(value - 1))}
         disabled={value <= min}
-        className="grid h-9 w-9 place-items-center rounded-l-lg text-ink-600 transition hover:bg-ink-50 disabled:opacity-40"
+        className="grid h-9 w-9 place-items-center rounded-l-2xl text-ink-600 transition hover:bg-white/60 disabled:opacity-40"
         aria-label="减少"
       >
         <MinusIcon className="h-4 w-4" />
@@ -750,7 +752,7 @@ function Stepper({
         type="button"
         onClick={() => onChange(clamp(value + 1))}
         disabled={value >= max}
-        className="grid h-9 w-9 place-items-center rounded-r-lg text-ink-600 transition hover:bg-ink-50 disabled:opacity-40"
+        className="grid h-9 w-9 place-items-center rounded-r-2xl text-ink-600 transition hover:bg-white/60 disabled:opacity-40"
         aria-label="增加"
       >
         <PlusIcon className="h-4 w-4" />
