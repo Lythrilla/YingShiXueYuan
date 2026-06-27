@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../alert_engine.dart';
 import '../background_service.dart';
+import '../native.dart';
+import '../permissions.dart';
 import '../store.dart';
 import '../theme.dart';
 
@@ -17,6 +19,8 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _vibration = true;
   bool _fullscreen = true;
   bool _relentless = true;
+  bool _notifGranted = true;
+  String _ringtone = '';
   String _server = '';
   bool _loaded = false;
 
@@ -31,8 +35,18 @@ class _SettingsPageState extends State<SettingsPage> {
     _vibration = await Store.alertVibration();
     _fullscreen = await Store.alertFullscreen();
     _relentless = await Store.alertRelentless();
+    _notifGranted = await AppPermissions.notificationGranted();
+    _ringtone = await Store.ringtoneTitle();
     _server = await Store.serverUrl();
     if (mounted) setState(() => _loaded = true);
+  }
+
+  Future<void> _pickRingtone() async {
+    final current = await Store.ringtoneUri();
+    final picked = await Native.pickRingtone(current);
+    if (picked == null) return;
+    await Store.setRingtone(picked.uri, picked.title);
+    if (mounted) setState(() => _ringtone = picked.title);
   }
 
   void _notifyService() => BackgroundPoller.settingsChanged();
@@ -46,6 +60,31 @@ class _SettingsPageState extends State<SettingsPage> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                if (!_notifGranted) ...[
+                  _sectionTitle('通知权限'),
+                  AppCard(
+                    padding: EdgeInsets.zero,
+                    child: ListTile(
+                      onTap: () async {
+                        await AppPermissions.openSettings();
+                        await _load();
+                      },
+                      leading: const Icon(Icons.notifications_off_outlined,
+                          color: AppColors.rose600),
+                      title: const Text('通知权限未开启',
+                          style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.rose600)),
+                      subtitle: const Text('未开启将收不到任何预约提醒，点此前往系统设置开启',
+                          style:
+                              TextStyle(fontSize: 12, color: AppColors.ink400)),
+                      trailing: const Icon(Icons.chevron_right,
+                          color: AppColors.rose600),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                ],
                 _sectionTitle('提醒方式'),
                 AppCard(
                   padding: EdgeInsets.zero,
@@ -54,6 +93,24 @@ class _SettingsPageState extends State<SettingsPage> {
                       await Store.setAlertSound(v);
                       setState(() => _sound = v);
                     }),
+                    _divider(),
+                    ListTile(
+                      onTap: _pickRingtone,
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      leading: const Icon(Icons.music_note_outlined,
+                          color: AppColors.ink500),
+                      title: const Text('提醒铃声',
+                          style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.ink800)),
+                      subtitle: Text('当前：$_ringtone · 点击从系统铃声中选择',
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColors.ink400)),
+                      trailing: const Icon(Icons.chevron_right,
+                          color: AppColors.ink300),
+                    ),
                     _divider(),
                     _switch('震动提醒', '配合铃声一起震动', _vibration, (v) async {
                       await Store.setAlertVibration(v);

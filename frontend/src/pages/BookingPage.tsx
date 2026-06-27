@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   api,
   type Booking,
@@ -740,6 +740,27 @@ function BookingModal({
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
 
+  // 可下拉关闭的底部面板手势状态。
+  const [dragY, setDragY] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const dragStart = useRef<number | null>(null)
+
+  function onDragStart(e: React.TouchEvent) {
+    dragStart.current = e.touches[0].clientY
+    setDragging(true)
+  }
+  function onDragMove(e: React.TouchEvent) {
+    if (dragStart.current == null) return
+    const dy = e.touches[0].clientY - dragStart.current
+    setDragY(dy > 0 ? dy : 0)
+  }
+  function onDragEnd() {
+    setDragging(false)
+    if (dragY > 120) onClose()
+    else setDragY(0)
+    dragStart.current = null
+  }
+
   function update<K extends keyof BookingForm>(key: K, value: BookingForm[K]) {
     setForm((f) => ({ ...f, [key]: value }))
   }
@@ -779,10 +800,30 @@ function BookingModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/45 p-0 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4">
-      <div className="no-scrollbar max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-2xl bg-white p-4 shadow-pop sm:rounded-xl sm:p-5">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/45 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-pop animate-fade-up sm:max-h-[88vh] sm:rounded-2xl"
+        style={{
+          transform: dragY ? `translateY(${dragY}px)` : undefined,
+          transition: dragging ? 'none' : 'transform 0.25s ease',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="flex shrink-0 cursor-grab touch-none justify-center pb-1.5 pt-3 active:cursor-grabbing"
+          onTouchStart={onDragStart}
+          onTouchMove={onDragMove}
+          onTouchEnd={onDragEnd}
+        >
+          <span className="h-1.5 w-10 rounded-full bg-ink-200" />
+        </div>
+
+        <div className="no-scrollbar flex-1 overflow-y-auto px-5 pb-[calc(1.75rem+env(safe-area-inset-bottom))]">
         {done ? (
-          <div className="py-8 text-center">
+          <div className="py-10 text-center">
             <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
               <CheckCircleIcon className="h-7 w-7" />
             </div>
@@ -793,13 +834,13 @@ function BookingModal({
             <p className="mt-1 text-[13px] text-ink-400">
               请按预约时段准时到场，预约需管理员审核通过。
             </p>
-            <button className="btn-primary mt-6 w-full" onClick={onSuccess}>
+            <button className="btn-primary mt-7 w-full" onClick={onSuccess}>
               完成
             </button>
           </div>
         ) : (
           <>
-            <div className="relative -mx-4 -mt-4 mb-1 h-36 overflow-hidden rounded-t-2xl bg-ink-100 sm:-mx-5 sm:-mt-5 sm:rounded-t-xl">
+            <div className="relative h-32 overflow-hidden rounded-2xl bg-ink-100">
               {resource.image_url ? (
                 <img
                   src={resource.image_url}
@@ -815,7 +856,7 @@ function BookingModal({
                   )}
                 </div>
               )}
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-950/60 via-ink-950/10 to-transparent" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-950/55 via-ink-950/5 to-transparent" />
               <button
                 onClick={onClose}
                 className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/85 text-ink-600 backdrop-blur transition hover:bg-white hover:text-ink-900"
@@ -824,7 +865,7 @@ function BookingModal({
               </button>
             </div>
 
-            <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
+            <div className="mt-4 flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
               <div className="min-w-0">
                 <p className="eyebrow">填写预约信息</p>
                 <h3 className="mt-1.5 truncate text-lg font-semibold tracking-tight text-ink-900">
@@ -836,7 +877,7 @@ function BookingModal({
               </p>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="预约人姓名" required>
                 <input
                   className="input"
@@ -891,7 +932,7 @@ function BookingModal({
             <div className="mt-4">
               <Field label="录音事项说明" required>
                 <textarea
-                  className="input min-h-[76px] resize-none"
+                  className="input min-h-[84px] resize-none"
                   value={form.description}
                   onChange={(e) => update('description', e.target.value)}
                   placeholder="简要说明录音 / 实验项目内容"
@@ -905,7 +946,7 @@ function BookingModal({
               </div>
             )}
 
-            <div className="mt-6 flex gap-3">
+            <div className="mt-7 flex gap-3">
               <button className="btn-ghost flex-1" onClick={onClose}>
                 取消
               </button>
@@ -915,6 +956,7 @@ function BookingModal({
             </div>
           </>
         )}
+        </div>
       </div>
     </div>
   )

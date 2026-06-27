@@ -25,7 +25,11 @@ class AlertEngine {
       _ringing = true;
       await _player.setReleaseMode(ReleaseMode.loop);
       await _player.setVolume(1.0);
-      await _player.play(AssetSource('sounds/alarm.mp3'));
+      final uri = await Store.ringtoneUri();
+      final source = (uri != null && uri.isNotEmpty)
+          ? UrlSource(uri)
+          : AssetSource('sounds/alarm.mp3');
+      await _player.play(source);
     } catch (e) {
       debugPrint('ring failed: $e');
       _ringing = false;

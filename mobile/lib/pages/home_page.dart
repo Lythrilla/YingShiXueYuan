@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import '../background_service.dart';
+import '../permissions.dart';
 import '../theme.dart';
 import '../widgets/anim.dart';
 import 'bookings_tab.dart';
@@ -22,12 +23,14 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _index = 0;
+  bool _permGranted = true;
   final List<StreamSubscription> _subs = [];
 
   @override
   void initState() {
     super.initState();
     BackgroundPoller.start();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensurePermissions());
     // 后台 isolate 收到 SSE / 轮询事件后会 invoke 这些消息到 UI。
     _subs.add(BackgroundPoller.instance.on('update').listen((_) {
       if (mounted) bumpRefresh();
@@ -43,6 +46,17 @@ class _HomePageState extends State<HomePage> {
       s.cancel();
     }
     super.dispose();
+  }
+
+  Future<void> _ensurePermissions() async {
+    final granted = await AppPermissions.requestNotification();
+    if (granted) {
+      await AppPermissions.requestBatteryExemption();
+      // 权限到位后立即重连推送并刷新一次，确保马上能收到通知。
+      BackgroundPoller.reconnect();
+      BackgroundPoller.pollNow();
+    }
+    if (mounted) setState(() => _permGranted = granted);
   }
 
   void _showDoorBanner(Map<String, dynamic> data) {
@@ -120,7 +134,34 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(width: 4),
         ],
       ),
-      body: body,
+      body: _permGranted
+          ? body
+          : Column(children: [_permissionBanner(), Expanded(child: body)]),
+    );
+  }
+
+  Widget _permissionBanner() {
+    return Material(
+      color: AppColors.rose50,
+      child: InkWell(
+        onTap: () async {
+          await AppPermissions.openSettings();
+          await _ensurePermissions();
+        },
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Row(children: [
+            const Icon(Icons.notifications_off_outlined,
+                color: AppColors.rose600, size: 20),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text('通知权限未开启，将收不到任何预约提醒。点此前往系统设置开启。',
+                  style: TextStyle(fontSize: 12.5, color: AppColors.rose600)),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.rose600, size: 18),
+          ]),
+        ),
+      ),
     );
   }
 }
