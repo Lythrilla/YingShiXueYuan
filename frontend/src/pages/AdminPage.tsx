@@ -56,12 +56,14 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
   }
 
   return (
-    <div className="grid min-h-full place-items-center bg-ink-50 p-4">
+    <div className="relative grid min-h-full place-items-center overflow-hidden p-4">
+      <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 animate-float rounded-full bg-gold-300/35 blur-[96px]" />
+      <div className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-accent-300/28 blur-[92px]" />
       <form
         onSubmit={submit}
-        className="w-full max-w-sm animate-fade-up rounded-xl border border-ink-200 bg-white p-8 shadow-soft"
+        className="relative w-full max-w-sm animate-fade-up rounded-[1.6rem] border border-white/70 bg-white/55 p-7 shadow-glass backdrop-blur-2xl"
       >
-        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-ink-900 text-white">
+        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/55 text-accent-600 shadow-card ring-1 ring-white/70 backdrop-blur-xl">
           <MicIcon className="h-6 w-6" />
         </div>
         <h1 className="mt-5 text-xl font-semibold tracking-tight text-ink-900">录音系预约后台</h1>
@@ -125,10 +127,10 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
 
   return (
     <div className="min-h-full">
-      <header className="sticky top-0 z-20 border-b border-ink-200 bg-white">
+      <header className="sticky top-0 z-20 border-b border-white/55 bg-white/45 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-ink-900 text-white">
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-white/60 text-accent-600 shadow-card ring-1 ring-white/70">
               <MicIcon className="h-[18px] w-[18px]" />
             </span>
             <div>
@@ -150,14 +152,14 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       </header>
 
       <div className="mx-auto max-w-6xl px-5 py-6">
-        <nav className="mb-6 inline-flex gap-1 rounded-lg border border-ink-200 bg-white p-1">
+        <nav className="mb-6 inline-flex gap-1 rounded-2xl border border-white/60 bg-white/40 p-1 shadow-glass backdrop-blur-2xl">
           {TABS.map(([key, label]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
               className={`rounded-md px-4 py-1.5 text-[13px] font-medium tracking-tight transition ${
                 tab === key
-                  ? 'bg-ink-900 text-white'
+                  ? 'bg-gradient-to-br from-ink-900 to-accent-700 text-white shadow-glow'
                   : 'text-ink-500 hover:text-ink-800'
               }`}
             >
@@ -764,7 +766,7 @@ function ResourcesTab() {
                 </div>
               </div>
             </div>
-            <div className="mt-2.5 flex gap-2 border-t border-ink-100 pt-2.5">
+            <div className="mt-2.5 flex gap-2 border-t border-white/55 pt-2.5">
               <button className="btn-ghost flex-1 !py-2 text-[13px]" onClick={() => setEditing(r)}>
                 编辑
               </button>
@@ -834,7 +836,7 @@ function ResourcesTab() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="grid h-full place-items-center text-ink-300">
+                      <div className="grid h-full place-items-center bg-gradient-to-br from-white/70 to-accent-50 text-accent-400">
                         <ImageIcon className="h-8 w-8" />
                       </div>
                     )}
@@ -1053,8 +1055,8 @@ function Modal({
   onSave: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/45 p-0 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4">
-      <div className="max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-2xl bg-white p-4 shadow-pop sm:rounded-xl sm:p-5">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/35 p-0 backdrop-blur-xl animate-fade-in sm:items-center sm:p-4">
+      <div className="max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-[1.4rem] border border-white/70 bg-white/65 p-4 shadow-pop backdrop-blur-2xl sm:rounded-[1.4rem] sm:p-5">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold tracking-tight text-ink-900">{title}</h3>
           <button
