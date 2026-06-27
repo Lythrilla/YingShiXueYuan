@@ -4,12 +4,11 @@ import 'package:vibration/vibration.dart';
 
 import 'store.dart';
 
-/// 铃声 + 震动提醒引擎。可循环播放直到被显式停止（处理完毕）。
+/// 铃声 + 震动提醒引擎。每次只响一声（不循环），可被显式停止。
 class AlertEngine {
   static final AudioPlayer _player = AudioPlayer();
-  static bool _ringing = false;
 
-  /// 触发一次强提醒（铃声循环 + 震动），遵循用户在设置里的开关。
+  /// 触发一次强提醒（铃声响一声 + 震动一次），遵循用户在设置里的开关。
   static Future<void> fire() async {
     if (await Store.alertSound()) {
       await _startRinging();
@@ -21,9 +20,8 @@ class AlertEngine {
 
   static Future<void> _startRinging() async {
     try {
-      if (_ringing) return;
-      _ringing = true;
-      await _player.setReleaseMode(ReleaseMode.loop);
+      await _player.stop();
+      await _player.setReleaseMode(ReleaseMode.release);
       await _player.setVolume(1.0);
       final uri = await Store.ringtoneUri();
       final source = (uri != null && uri.isNotEmpty)
@@ -32,7 +30,6 @@ class AlertEngine {
       await _player.play(source);
     } catch (e) {
       debugPrint('ring failed: $e');
-      _ringing = false;
     }
   }
 
@@ -52,7 +49,6 @@ class AlertEngine {
   /// 停止铃声（当没有待处理预约时调用）。
   static Future<void> stop() async {
     try {
-      _ringing = false;
       await _player.stop();
       await Vibration.cancel();
     } catch (e) {
