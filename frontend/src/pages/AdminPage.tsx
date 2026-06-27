@@ -551,7 +551,7 @@ function BookingsTab() {
       </div>
 
       <div className="card hidden overflow-hidden sm:block">
-        <div className="overflow-x-auto">
+        <div className="no-scrollbar overflow-x-auto">
           <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-ink-100 bg-ink-50/60 text-left text-[11px] uppercase tracking-wider text-ink-400">
@@ -1132,7 +1132,7 @@ function Modal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/45 p-0 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4">
-      <div className="max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-2xl bg-white p-4 shadow-pop sm:rounded-xl sm:p-5">
+      <div className="no-scrollbar max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-2xl bg-white p-4 shadow-pop sm:rounded-xl sm:p-5">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold tracking-tight text-ink-900">{title}</h3>
           <button
