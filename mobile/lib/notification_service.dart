@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import 'alert_engine.dart';
 import 'api_client.dart';
 import 'models.dart';
 import 'store.dart';
@@ -205,6 +206,8 @@ class Notifications {
     if (id == null) return;
     final action = r.actionId;
     if (action != 'approve' && action != 'cancel') return;
+    // 一旦从通知上处理，立即停掉正在响的提醒。
+    await AlertEngine.stop();
     try {
       final api = await ApiClient.fromStore();
       if (action == 'approve') {

@@ -71,8 +71,9 @@ class Store {
       (await _prefs()).setBool(_kAlertFullscreen, v);
 
   /// 是否「不处理就一直响」——每个轮询周期只要有待处理就重复提醒。
+  /// 默认关闭：每条新预约只提醒一声，避免持续响铃打扰。
   static Future<bool> alertRelentless() async =>
-      (await _prefs()).getBool(_kAlertRelentless) ?? true;
+      (await _prefs()).getBool(_kAlertRelentless) ?? false;
   static Future<void> setAlertRelentless(bool v) async =>
       (await _prefs()).setBool(_kAlertRelentless, v);
 
