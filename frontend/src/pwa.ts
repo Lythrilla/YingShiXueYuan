@@ -5,6 +5,16 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+/** WeChat's in-app browser (X5 kernel) blocks Web Share API and PWA install. */
+export function isWeChat(): boolean {
+  return /micromessenger/i.test(navigator.userAgent)
+}
+
+/** iOS Safari has no `beforeinstallprompt`; add-to-home-screen is manual. */
+export function isIos(): boolean {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent)
+}
+
 function isStandalone(): boolean {
   return (
     window.matchMedia?.('(display-mode: standalone)').matches ||
@@ -52,11 +62,15 @@ export function useInstallPrompt() {
 }
 
 export interface ShareResult {
-  status: 'shared' | 'copied' | 'unavailable'
+  status: 'shared' | 'copied' | 'unavailable' | 'wechat'
 }
 
-/** Opens the native share sheet; falls back to copying the link to clipboard. */
+/**
+ * Opens the native share sheet; falls back to copying the link to clipboard.
+ * In WeChat both are unavailable, so the caller should show the in-app guide.
+ */
 export async function shareApp(data?: { title?: string; text?: string; url?: string }): Promise<ShareResult> {
+  if (isWeChat()) return { status: 'wechat' }
   const payload = {
     title: data?.title ?? document.title,
     text: data?.text ?? '河北科技大学影视学院录音系 · 录音实验室预约',
