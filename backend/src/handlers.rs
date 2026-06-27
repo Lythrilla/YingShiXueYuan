@@ -91,8 +91,13 @@ pub async fn create_booking(
     State(st): State<AppState>,
     Json(payload): Json<BookingCreate>,
 ) -> ApiResult<Response> {
-    if payload.applicant_name.trim().is_empty() || payload.phone.trim().is_empty() {
-        return Err(ApiError::bad_request("预约人姓名和联系电话不能为空"));
+    if payload.applicant_name.trim().is_empty()
+        || payload.phone.trim().is_empty()
+        || payload.major.trim().is_empty()
+        || payload.instructor.trim().is_empty()
+        || payload.description.trim().is_empty()
+    {
+        return Err(ApiError::bad_request("请填写完整的预约信息（所有字段均为必填）"));
     }
     let conn = st.conn();
     let resource = db::get_resource(&conn, payload.resource_id)?

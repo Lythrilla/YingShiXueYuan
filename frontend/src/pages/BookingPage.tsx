@@ -745,8 +745,18 @@ function BookingModal({
   }
 
   async function submit() {
-    if (!form.applicant_name.trim() || !form.phone.trim()) {
-      setError('请填写预约人姓名和联系电话')
+    if (
+      !form.applicant_name.trim() ||
+      !form.phone.trim() ||
+      !form.major.trim() ||
+      !form.instructor.trim() ||
+      !form.description.trim()
+    ) {
+      setError('请填写所有必填信息')
+      return
+    }
+    if (!/^1[3-9]\d{9}$/.test(form.phone.trim())) {
+      setError('请输入正确的 11 位手机号')
       return
     }
     setSubmitting(true)
@@ -824,7 +834,7 @@ function BookingModal({
                   placeholder="手机号"
                 />
               </Field>
-              <Field label="专业班级">
+              <Field label="专业班级" required>
                 <input
                   className="input"
                   value={form.major}
@@ -832,7 +842,7 @@ function BookingModal({
                   placeholder="如 录音艺术"
                 />
               </Field>
-              <Field label="指导教师">
+              <Field label="指导教师" required>
                 <input
                   className="input"
                   value={form.instructor}
@@ -860,7 +870,7 @@ function BookingModal({
               )}
             </div>
             <div className="mt-4">
-              <Field label="录音事项说明">
+              <Field label="录音事项说明" required>
                 <textarea
                   className="input min-h-[76px] resize-none"
                   value={form.description}
