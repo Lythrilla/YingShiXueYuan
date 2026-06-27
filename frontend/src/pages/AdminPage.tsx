@@ -5,6 +5,7 @@ import {
   clearToken,
   getToken,
   setToken,
+  uploadImage,
   type Booking,
   type Resource,
   type Slot,
@@ -16,11 +17,13 @@ import {
   CloseIcon,
   DownloadIcon,
   HomeIcon,
+  ImageIcon,
   LogoutIcon,
   MicIcon,
   PlusIcon,
   SearchIcon,
   SlidersIcon,
+  UploadIcon,
 } from '../icons'
 
 type Tab = 'bookings' | 'resources' | 'slots'
@@ -459,6 +462,7 @@ const EMPTY_RESOURCE: Omit<Resource, 'id'> = {
 function ResourcesTab() {
   const [resources, setResources] = useState<Resource[]>([])
   const [editing, setEditing] = useState<Partial<Resource> | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   function load() {
     api.get<Resource[]>('/admin/resources').then((r) => setResources(r.data))
@@ -474,6 +478,20 @@ function ResourcesTab() {
     }
     setEditing(null)
     load()
+  }
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.currentTarget.files?.[0]
+    if (!file) return
+    setUploadingImage(true)
+    try {
+      const url = await uploadImage(file)
+      setEditing((current) => (current ? { ...current, image_url: url } : current))
+    } catch {
+      alert('图片上传失败，请确认文件小于 5MB 且为 PNG、JPG、WebP 或 GIF。')
+    } finally {
+      setUploadingImage(false)
+      e.currentTarget.value = ''
+    }
   }
   async function remove(id: number) {
     if (!confirm('删除该资源？相关预约也会被移除。')) return
@@ -497,43 +515,54 @@ function ResourcesTab() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {resources.map((r) => (
-          <div key={r.id} className="card p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-accent-100 to-gold-100 text-accent-600 ring-1 ring-accent-200/50">
-                  {r.kind === 'lab' ? (
-                    <MicIcon className="h-5 w-5" />
-                  ) : (
-                    <SlidersIcon className="h-5 w-5" />
-                  )}
-                </span>
-                <div>
-                  <div className="font-semibold tracking-tight text-ink-900">{r.name}</div>
-                  <div className="text-[11px] text-ink-400">
-                    {r.kind === 'lab' ? '实验室' : '设备'} · 名额 {r.total_quantity}
+          <div key={r.id} className="card overflow-hidden">
+            <div className="h-28 bg-ink-100">
+              {r.image_url ? (
+                <img src={r.image_url} alt={r.name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="grid h-full place-items-center bg-gradient-to-br from-accent-50 via-gold-50 to-ink-100 text-accent-300">
+                  <ImageIcon className="h-9 w-9" />
+                </div>
+              )}
+            </div>
+            <div className="p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-accent-100 to-gold-100 text-accent-600 ring-1 ring-accent-200/50">
+                    {r.kind === 'lab' ? (
+                      <MicIcon className="h-5 w-5" />
+                    ) : (
+                      <SlidersIcon className="h-5 w-5" />
+                    )}
+                  </span>
+                  <div>
+                    <div className="font-semibold tracking-tight text-ink-900">{r.name}</div>
+                    <div className="text-[11px] text-ink-400">
+                      {r.kind === 'lab' ? '实验室' : '设备'} · 名额 {r.total_quantity}
+                    </div>
                   </div>
                 </div>
+                {!r.is_active && (
+                  <span className="badge bg-ink-100 text-ink-400">已停用</span>
+                )}
               </div>
-              {!r.is_active && (
-                <span className="badge bg-ink-100 text-ink-400">已停用</span>
-              )}
-            </div>
-            <p className="mt-3 line-clamp-2 min-h-[2.5rem] text-[13px] leading-relaxed text-ink-500">
-              {r.description || '暂无描述'}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {!r.individual_bookable && (
-                <span className="badge bg-amber-50 text-amber-700">个人不可预约</span>
-              )}
-              <span className="badge bg-ink-50 text-ink-500">排序 {r.sort_order}</span>
-            </div>
-            <div className="mt-4 flex gap-2">
-              <button className="btn-ghost flex-1 !py-2 text-[13px]" onClick={() => setEditing(r)}>
-                编辑
-              </button>
-              <button className="btn-danger !py-2 text-[13px]" onClick={() => remove(r.id)}>
-                删除
-              </button>
+              <p className="mt-3 line-clamp-2 min-h-[2.5rem] text-[13px] leading-relaxed text-ink-500">
+                {r.description || '暂无描述'}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {!r.individual_bookable && (
+                  <span className="badge bg-amber-50 text-amber-700">个人不可预约</span>
+                )}
+                <span className="badge bg-ink-50 text-ink-500">排序 {r.sort_order}</span>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button className="btn-ghost flex-1 !py-2 text-[13px]" onClick={() => setEditing(r)}>
+                  编辑
+                </button>
+                <button className="btn-danger !py-2 text-[13px]" onClick={() => remove(r.id)}>
+                  删除
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -545,8 +574,8 @@ function ResourcesTab() {
           onClose={() => setEditing(null)}
           onSave={save}
         >
-          <div className="grid grid-cols-2 gap-4">
-            <label className="col-span-2 block">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="block sm:col-span-2">
               <span className="label">名称</span>
               <input
                 className="input"
@@ -577,7 +606,7 @@ function ResourcesTab() {
                 }
               />
             </label>
-            <label className="col-span-2 block">
+            <label className="block sm:col-span-2">
               <span className="label">描述</span>
               <textarea
                 className="input min-h-[72px] resize-none"
@@ -585,15 +614,59 @@ function ResourcesTab() {
                 onChange={(e) => setEditing({ ...editing, description: e.target.value })}
               />
             </label>
-            <label className="col-span-2 block">
-              <span className="label">图片地址（可选）</span>
-              <input
-                className="input"
-                placeholder="https://…"
-                value={editing.image_url ?? ''}
-                onChange={(e) => setEditing({ ...editing, image_url: e.target.value })}
-              />
-            </label>
+            <div className="sm:col-span-2">
+              <span className="label">资源图片</span>
+              <div className="rounded-2xl border border-dashed border-ink-200 bg-ink-50/60 p-3">
+                <div className="grid gap-3 sm:grid-cols-[132px_1fr]">
+                  <div className="h-24 overflow-hidden rounded-xl bg-white ring-1 ring-inset ring-ink-200">
+                    {editing.image_url ? (
+                      <img
+                        src={editing.image_url}
+                        alt="资源预览"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="grid h-full place-items-center text-ink-300">
+                        <ImageIcon className="h-8 w-8" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <p className="text-[13px] leading-relaxed text-ink-500">
+                      上传后会自动填入图片地址，前台资源卡片与后台列表会同步预览。
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <label className="btn-ghost cursor-pointer !py-2 text-[13px]">
+                        <UploadIcon className="h-4 w-4" />
+                        {uploadingImage ? '上传中…' : '上传图片'}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/gif"
+                          className="hidden"
+                          disabled={uploadingImage}
+                          onChange={handleImageUpload}
+                        />
+                      </label>
+                      {editing.image_url && (
+                        <button
+                          type="button"
+                          className="btn-danger !py-2 text-[13px]"
+                          onClick={() => setEditing({ ...editing, image_url: '' })}
+                        >
+                          移除
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <input
+                  className="input mt-3"
+                  placeholder="/uploads/images/… 或 https://…"
+                  value={editing.image_url ?? ''}
+                  onChange={(e) => setEditing({ ...editing, image_url: e.target.value })}
+                />
+              </div>
+            </div>
             <label className="block">
               <span className="label">排序</span>
               <input
@@ -706,8 +779,8 @@ function SlotsTab() {
           onClose={() => setEditing(null)}
           onSave={save}
         >
-          <div className="grid grid-cols-2 gap-4">
-            <label className="col-span-2 block">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="block sm:col-span-2">
               <span className="label">名称</span>
               <input
                 className="input"
@@ -773,7 +846,7 @@ function Modal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/45 p-0 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4">
-      <div className="max-h-[92vh] w-full max-w-lg animate-fade-up overflow-y-auto rounded-t-3xl bg-white p-6 shadow-pop sm:rounded-2xl">
+      <div className="max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-3xl bg-white p-5 shadow-pop sm:rounded-2xl sm:p-6">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold tracking-tight text-ink-900">{title}</h3>
           <button

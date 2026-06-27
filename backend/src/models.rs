@@ -142,6 +142,11 @@ pub struct TokenOut {
     pub username: String,
 }
 
+#[derive(Debug, Serialize)]
+pub struct ImageUploadOut {
+    pub url: String,
+}
+
 fn default_kind() -> String {
     "lab".to_string()
 }

@@ -51,6 +51,7 @@ async fn main() {
             "/api/admin/resources/:id",
             delete(handlers::delete_resource),
         )
+        .route("/api/admin/uploads/images", post(handlers::upload_image))
         // admin slots
         .route("/api/admin/slots", get(handlers::admin_list_slots))
         .route("/api/admin/slots", post(handlers::create_slot))
@@ -68,6 +69,7 @@ async fn main() {
         )
         .route("/api/admin/stats", get(handlers::stats))
         .route("/api/admin/export", get(handlers::export_bookings))
+        .route("/uploads/images/:filename", get(handlers::uploaded_image))
         .route("/healthz", get(handlers::healthz));
 
     let app = Router::new()

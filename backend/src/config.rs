@@ -9,6 +9,7 @@ pub struct Config {
     pub token_max_age: i64,
     pub host: String,
     pub port: u16,
+    pub data_dir: PathBuf,
     pub db_path: PathBuf,
     pub open_browser: bool,
 }
@@ -39,6 +40,7 @@ impl Config {
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(8010),
+            data_dir,
             db_path,
             // 默认在交互式运行时自动打开浏览器，可用 NO_OPEN=1 关闭
             open_browser: env::var("NO_OPEN").is_err(),

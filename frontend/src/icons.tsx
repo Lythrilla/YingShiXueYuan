@@ -104,6 +104,25 @@ export function DownloadIcon(props: IconProps) {
   )
 }
 
+export function UploadIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 20.5v-11M7.5 14l4.5-4.5 4.5 4.5" />
+      <path d="M4.5 4.5h15" />
+    </Svg>
+  )
+}
+
+export function ImageIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" />
+      <circle cx="8.5" cy="9" r="1.4" />
+      <path d="m6.5 17 4.2-4.2 2.7 2.7 1.7-1.7 2.4 3.2" />
+    </Svg>
+  )
+}
+
 export function PlusIcon(props: IconProps) {
   return (
     <Svg {...props}>

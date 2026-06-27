@@ -94,3 +94,14 @@ export interface BookingForm {
   description: string
   quantity: number
 }
+
+export interface ImageUploadResponse {
+  url: string
+}
+
+export async function uploadImage(file: File): Promise<string> {
+  const form = new FormData()
+  form.append('image', file)
+  const res = await api.post<ImageUploadResponse>('/admin/uploads/images', form)
+  return res.data.url
+}

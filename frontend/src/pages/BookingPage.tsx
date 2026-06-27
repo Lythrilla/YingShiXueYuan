@@ -69,13 +69,13 @@ export default function BookingPage() {
     <div className="min-h-full pb-20">
       <Hero />
 
-      <main className="mx-auto -mt-16 max-w-5xl px-5">
+      <main className="mx-auto -mt-12 max-w-5xl px-5">
         <DatePicker days={days} date={date} onChange={setDate} />
 
         {loading && resources.length === 0 ? (
           <div className="py-24 text-center text-sm text-ink-400">加载中…</div>
         ) : (
-          <div className="mt-12 space-y-12">
+          <div className="mt-9 space-y-10">
             {labs.length > 0 && (
               <Section title="录音实验室" subtitle="点击时段即可发起预约" kind="lab">
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -136,7 +136,7 @@ export default function BookingPage() {
 
 function Hero() {
   return (
-    <header className="relative overflow-hidden bg-warm-hero pb-28 pt-7 text-white">
+    <header className="relative overflow-hidden bg-warm-hero pb-24 pt-6 text-white">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.10]"
         style={{
@@ -166,9 +166,9 @@ function Hero() {
           </Link>
         </div>
 
-        <div className="mt-14 max-w-2xl animate-fade-up">
+        <div className="mt-11 max-w-2xl animate-fade-up">
           <p className="eyebrow !text-white/60">Recording Lab · Online Booking</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-[2.7rem] sm:leading-[1.1]">
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-[2.45rem] sm:leading-[1.1]">
             录音实验室预约
           </h1>
           <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-white/65">
@@ -194,7 +194,7 @@ function DatePicker({
   onChange: (d: string) => void
 }) {
   return (
-    <div className="card animate-fade-up p-4 sm:p-5">
+    <div className="card animate-fade-up p-3.5 sm:p-4">
       <div className="mb-3.5 flex items-center gap-2 text-[13px] font-medium text-ink-500">
         <CalendarIcon className="h-4 w-4 text-accent-500" /> 选择日期
       </div>
@@ -206,7 +206,7 @@ function DatePicker({
             <button
               key={ds}
               onClick={() => onChange(ds)}
-              className={`flex min-w-[66px] flex-col items-center rounded-2xl border px-3 py-2.5 transition ${
+              className={`flex min-w-[62px] flex-col items-center rounded-2xl border px-3 py-2 transition ${
                 active
                   ? 'border-transparent bg-gradient-to-br from-accent-400 to-accent-600 text-white shadow-glow'
                   : 'border-ink-200 bg-white text-ink-600 hover:border-accent-200 hover:bg-accent-50'
@@ -239,8 +239,8 @@ function Section({
 }) {
   return (
     <section className="animate-fade-up">
-      <div className="mb-5 flex items-center gap-3">
-        <span className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-accent-100 to-gold-100 text-accent-600 shadow-card ring-1 ring-accent-200/60">
+      <div className="mb-4 flex items-center gap-3">
+        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-accent-100 to-gold-100 text-accent-600 shadow-card ring-1 ring-accent-200/60">
           {kind === 'lab' ? (
             <HeadphonesIcon className="h-5 w-5" />
           ) : (
@@ -271,7 +271,7 @@ function ResourceCard({
   const bookable = resource.individual_bookable
   return (
     <div className="card overflow-hidden transition duration-300 hover:-translate-y-1 hover:shadow-soft">
-      <div className="relative h-32 w-full overflow-hidden bg-ink-100">
+      <div className="relative h-28 w-full overflow-hidden bg-ink-100">
         {resource.image_url ? (
           <img
             src={resource.image_url}
@@ -291,7 +291,7 @@ function ResourceCard({
           每时段 {resource.total_quantity} 个名额
         </span>
       </div>
-      <div className="p-4">
+      <div className="p-3.5">
         <h3 className="text-[15px] font-semibold tracking-tight text-ink-900">{resource.name}</h3>
         <p className="mt-1 line-clamp-2 min-h-[2.5rem] text-[13px] leading-relaxed text-ink-500">
           {resource.description || '暂无描述'}
@@ -302,7 +302,7 @@ function ResourceCard({
             <LockIcon className="h-4 w-4" /> 学生个人不可预约
           </div>
         ) : (
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="mt-3 grid grid-cols-3 gap-1.5">
             {slots.map((slot) => {
               const sa = availability?.slots.find((x) => x.slot.id === slot.id)
               const avail = sa?.available ?? resource.total_quantity
@@ -312,7 +312,7 @@ function ResourceCard({
                   key={slot.id}
                   disabled={full}
                   onClick={() => onPick({ resource, slot, available: avail })}
-                  className={`flex flex-col items-center rounded-2xl border px-2 py-2.5 text-center transition ${
+                  className={`flex flex-col items-center rounded-xl border px-2 py-2 text-center transition ${
                     full
                       ? 'cursor-not-allowed border-ink-100 bg-ink-50 text-ink-300'
                       : 'border-ink-200 bg-white text-ink-700 hover:border-accent-400 hover:bg-accent-50 hover:shadow-card'
@@ -397,7 +397,7 @@ function BookingModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/45 p-0 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4">
-      <div className="max-h-[92vh] w-full max-w-lg animate-fade-up overflow-y-auto rounded-t-3xl bg-white p-6 shadow-pop sm:rounded-2xl">
+      <div className="max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-3xl bg-white p-5 shadow-pop sm:rounded-2xl sm:p-6">
         {done ? (
           <div className="py-8 text-center">
             <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
@@ -434,7 +434,7 @@ function BookingModal({
               </button>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-4">
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="预约人姓名" required>
                 <input
                   className="input"
