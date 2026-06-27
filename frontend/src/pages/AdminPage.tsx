@@ -126,36 +126,38 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="min-h-full">
       <header className="sticky top-0 z-20 border-b border-ink-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
-          <div className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-ink-900 text-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink-900 text-white">
               <MicIcon className="h-[18px] w-[18px]" />
             </span>
-            <div>
-              <div className="text-sm font-semibold tracking-tight text-ink-900">
-                河北科技大学影视学院录音系 · 后台
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold tracking-tight text-ink-900">
+                录音系预约后台
               </div>
-              <div className="text-[11px] text-ink-400">预约管理控制台</div>
+              <div className="truncate text-[11px] text-ink-400">河北科技大学影视学院</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Link to="/" className="btn-ghost !py-2 text-[13px]">
-              <HomeIcon className="h-4 w-4" /> 预约首页
+          <div className="flex shrink-0 items-center gap-2">
+            <Link to="/" className="btn-ghost !px-3 !py-2 text-[13px]" title="预约首页">
+              <HomeIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">预约首页</span>
             </Link>
-            <button onClick={logout} className="btn-ghost !py-2 text-[13px]">
-              <LogoutIcon className="h-4 w-4" /> 退出登录
+            <button onClick={logout} className="btn-ghost !px-3 !py-2 text-[13px]" title="退出登录">
+              <LogoutIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">退出登录</span>
             </button>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-5 py-6">
-        <nav className="mb-6 inline-flex gap-1 rounded-lg border border-ink-200 bg-white p-1">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-5">
+        <nav className="no-scrollbar mb-6 flex gap-1 overflow-x-auto rounded-lg border border-ink-200 bg-white p-1">
           {TABS.map(([key, label]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`rounded-md px-4 py-1.5 text-[13px] font-medium tracking-tight transition ${
+              className={`shrink-0 whitespace-nowrap rounded-md px-3.5 py-1.5 text-[13px] font-medium tracking-tight transition ${
                 tab === key
                   ? 'bg-ink-900 text-white'
                   : 'text-ink-500 hover:text-ink-800'
@@ -545,7 +547,7 @@ function BookingsTab() {
         </div>
       </div>
 
-      <div className="card overflow-hidden">
+      <div className="card hidden overflow-hidden sm:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-sm">
             <thead>
@@ -628,6 +630,79 @@ function BookingsTab() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="space-y-3 sm:hidden">
+        {bookings.map((b) => {
+          const meta = STATUS_META[b.status]
+          return (
+            <div key={b.id} className="card p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate font-medium text-ink-900">{b.applicant_name}</div>
+                  <div className="text-xs text-ink-400">{b.phone}</div>
+                </div>
+                <span className={`badge shrink-0 ${meta.className}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+                  {meta.label}
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[13px]">
+                <div>
+                  <div className="text-[11px] text-ink-400">资源</div>
+                  <div className="text-ink-700">{b.resource.name}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-ink-400">日期 / 时段</div>
+                  <div className="text-ink-700">{b.date}</div>
+                  <div className="text-xs text-ink-400">
+                    {b.slot.name} {b.slot.start_time}-{b.slot.end_time}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-ink-400">人数 / 数量</div>
+                  <div className="text-ink-700 tabular-nums">
+                    {b.num_people} 人 / {b.quantity} 套
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-ink-400">指导教师</div>
+                  <div className="text-ink-700">{b.instructor || '—'}</div>
+                </div>
+                {b.major && (
+                  <div className="col-span-2">
+                    <div className="text-[11px] text-ink-400">专业班级</div>
+                    <div className="text-ink-700">{b.major}</div>
+                  </div>
+                )}
+              </div>
+              {b.status === 'booked' && (
+                <div className="mt-3 flex gap-2 border-t border-ink-100 pt-3">
+                  <button
+                    className="flex-1 rounded-lg bg-emerald-50 py-2 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-100"
+                    onClick={() => verify(b.id)}
+                  >
+                    通过
+                  </button>
+                  <button
+                    className="flex-1 rounded-lg bg-white py-2 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200"
+                    onClick={() => cancel(b.id)}
+                  >
+                    取消
+                  </button>
+                </div>
+              )}
+              {b.status === 'verified' && b.verified_at && (
+                <div className="mt-3 border-t border-ink-100 pt-3 text-xs text-ink-400">
+                  {formatDateTime(b.verified_at)} 通过
+                </div>
+              )}
+            </div>
+          )
+        })}
+        {bookings.length === 0 && !loading && (
+          <div className="card px-4 py-16 text-center text-sm text-ink-300">暂无预约记录</div>
+        )}
       </div>
     </div>
   )
