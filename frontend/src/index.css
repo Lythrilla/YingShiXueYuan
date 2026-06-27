@@ -23,16 +23,16 @@ body {
 
 @layer base {
   ::selection {
-    background-color: rgba(219, 98, 56, 0.16);
+    background-color: rgba(24, 24, 27, 0.12);
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium tracking-tight transition duration-150 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium tracking-tight transition duration-150 disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-accent-600 text-white hover:bg-accent-700 active:scale-[0.99];
+    @apply btn bg-ink-900 text-white hover:bg-ink-800 active:scale-[0.99];
   }
   .btn-ghost {
     @apply btn bg-white text-ink-700 ring-1 ring-inset ring-ink-200 hover:bg-ink-50;
@@ -41,7 +41,7 @@ body {
     @apply btn bg-white text-rose-600 ring-1 ring-inset ring-rose-200 hover:bg-rose-50;
   }
   .input {
-    @apply w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 outline-none transition placeholder:text-ink-400 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/15;
+    @apply w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 outline-none transition placeholder:text-ink-400 focus:border-ink-900 focus:ring-2 focus:ring-ink-900/10;
   }
   .label {
     @apply mb-1.5 block text-[13px] font-medium text-ink-600;
@@ -53,6 +53,9 @@ body {
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
   }
   .eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-400;
+    @apply text-xs font-medium uppercase tracking-[0.22em] text-ink-400;
+  }
+  .display {
+    @apply font-semibold tracking-[-0.03em] text-ink-900;
   }
 }

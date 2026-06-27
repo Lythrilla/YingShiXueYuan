@@ -66,19 +66,20 @@ export default function BookingPage() {
   const equipment = resources.filter((r) => r.kind === 'equipment')
 
   return (
-    <div className="min-h-full pb-14">
+    <div className="min-h-full pb-28">
+      <TopNav />
       <Hero />
 
-      <main className="mx-auto mt-5 max-w-5xl px-5">
+      <main className="mx-auto max-w-6xl px-6">
         <DatePicker days={days} date={date} onChange={setDate} />
 
         {loading && resources.length === 0 ? (
-          <div className="py-24 text-center text-sm text-ink-400">加载中…</div>
+          <div className="py-28 text-center text-sm text-ink-400">加载中…</div>
         ) : (
-          <div className="mt-7 space-y-8">
+          <div className="mt-16 space-y-20 sm:mt-20 sm:space-y-28">
             {labs.length > 0 && (
-              <Section title="录音实验室" subtitle="点击时段即可发起预约" kind="lab">
-                <div className="grid gap-3 sm:grid-cols-2">
+              <Section title="录音实验室" subtitle="点击任意时段即可发起预约" kind="lab">
+                <div className="grid gap-8 sm:grid-cols-2 sm:gap-10">
                   {labs.map((r) => (
                     <ResourceCard
                       key={r.id}
@@ -93,8 +94,8 @@ export default function BookingPage() {
             )}
 
             {equipment.length > 0 && (
-              <Section title="拾音设备" subtitle="可借用的录音设备套装" kind="equipment">
-                <div className="grid gap-3 sm:grid-cols-2">
+              <Section title="拾音设备" subtitle="可借用的同期录音设备套装" kind="equipment">
+                <div className="grid gap-8 sm:grid-cols-2 sm:gap-10">
                   {equipment.map((r) => (
                     <ResourceCard
                       key={r.id}
@@ -134,43 +135,46 @@ export default function BookingPage() {
   )
 }
 
-function Hero() {
+function TopNav() {
   return (
-    <header className="pt-5">
-      <div className="mx-auto max-w-5xl px-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent-600 text-white">
-              <MicIcon className="h-4 w-4" />
-            </span>
-            <span className="text-sm font-medium tracking-tight text-ink-700">
-              影视学院 · 录音实验室
-            </span>
-          </div>
-          <Link
-            to="/admin"
-            className="rounded-lg px-3 py-1.5 text-sm font-medium text-ink-500 ring-1 ring-inset ring-ink-200 transition hover:bg-ink-50 hover:text-ink-900"
-          >
-            后台管理
-          </Link>
+    <header className="sticky top-0 z-30 border-b border-ink-100/80 bg-white/80 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
+        <div className="flex items-center gap-2.5">
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-ink-900 text-white">
+            <MicIcon className="h-3.5 w-3.5" />
+          </span>
+          <span className="text-[13px] font-medium tracking-tight text-ink-800">
+            影视学院 · 录音实验室
+          </span>
         </div>
-
-        <div className="mt-6 flex flex-col gap-3 border-b border-ink-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-ink-900 sm:text-[1.75rem]">
-              录音实验室预约
-            </h1>
-            <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-ink-500">
-              选择日期与时段即可预约录音棚或拾音设备，后台统一核销与管理。
-            </p>
-          </div>
-          <div className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-ink-50 px-2.5 py-1.5 text-[13px] text-ink-600 ring-1 ring-inset ring-ink-200">
-            <CalendarIcon className="h-4 w-4 text-ink-400" />
-            可提前 {BOOKING_WINDOW_DAYS} 天预约
-          </div>
-        </div>
+        <Link
+          to="/admin"
+          className="text-[13px] font-medium text-ink-500 transition hover:text-ink-900"
+        >
+          后台管理
+        </Link>
       </div>
     </header>
+  )
+}
+
+function Hero() {
+  return (
+    <section className="mx-auto max-w-4xl px-6 pb-16 pt-20 text-center sm:pb-24 sm:pt-28">
+      <p className="eyebrow">Recording Lab · 预约</p>
+      <h1 className="display mt-5 text-5xl leading-[1.05] sm:text-7xl">
+        录音实验室
+        <br className="hidden sm:block" />
+        <span className="text-ink-400">随时预约。</span>
+      </h1>
+      <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-ink-500 sm:text-lg">
+        四间专业录音棚与同期拾音设备，选择日期与时段，一步完成预约。
+      </p>
+      <div className="mt-8 inline-flex items-center gap-2 text-[13px] font-medium text-ink-400">
+        <CalendarIcon className="h-4 w-4" />
+        可提前 {BOOKING_WINDOW_DAYS} 天预约
+      </div>
+    </section>
   )
 }
 
@@ -184,11 +188,8 @@ function DatePicker({
   onChange: (d: string) => void
 }) {
   return (
-    <div>
-      <div className="mb-2 flex items-center gap-2 text-[13px] font-medium text-ink-500">
-        <CalendarIcon className="h-4 w-4 text-ink-400" /> 选择日期
-      </div>
-      <div className="flex gap-1.5 overflow-x-auto pb-1">
+    <div className="flex justify-center">
+      <div className="flex gap-2 overflow-x-auto px-1 pb-1">
         {days.map((d, i) => {
           const ds = toDateStr(d)
           const active = ds === date
@@ -196,16 +197,16 @@ function DatePicker({
             <button
               key={ds}
               onClick={() => onChange(ds)}
-              className={`flex min-w-[56px] flex-col items-center rounded-lg border px-2.5 py-1.5 transition ${
+              className={`flex min-w-[64px] flex-col items-center rounded-2xl border px-3 py-2.5 transition ${
                 active
                   ? 'border-ink-900 bg-ink-900 text-white'
                   : 'border-ink-200 bg-white text-ink-500 hover:border-ink-300 hover:text-ink-900'
               }`}
             >
-              <span className={`text-[11px] ${active ? 'text-white/65' : 'text-ink-400'}`}>
+              <span className={`text-[11px] ${active ? 'text-white/70' : 'text-ink-400'}`}>
                 {i === 0 ? '今天' : WEEKDAYS[d.getDay()]}
               </span>
-              <span className="mt-0.5 text-sm font-semibold tracking-tight">
+              <span className="mt-1 text-[15px] font-semibold tracking-tight">
                 {d.getMonth() + 1}/{d.getDate()}
               </span>
             </button>
@@ -229,18 +230,16 @@ function Section({
 }) {
   return (
     <section className="animate-fade-up">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight text-ink-950">{title}</h2>
-          <p className="mt-0.5 text-[13px] text-ink-400">{subtitle}</p>
-        </div>
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-ink-100 text-ink-500">
+      <div className="mb-8 text-center sm:mb-12">
+        <span className="mb-4 inline-grid h-9 w-9 place-items-center rounded-full bg-ink-900 text-white">
           {kind === 'lab' ? (
             <HeadphonesIcon className="h-4 w-4" />
           ) : (
             <SlidersIcon className="h-4 w-4" />
           )}
         </span>
+        <h2 className="display text-3xl sm:text-4xl">{title}</h2>
+        <p className="mt-3 text-[15px] text-ink-400">{subtitle}</p>
       </div>
       {children}
     </section>
@@ -260,25 +259,25 @@ function ResourceCard({
 }) {
   const bookable = resource.individual_bookable
   return (
-    <div className="card group overflow-hidden transition duration-150 hover:border-ink-300 hover:shadow-soft">
-      <div className="relative aspect-[16/10] w-full overflow-hidden bg-ink-100">
+    <div className="group overflow-hidden rounded-3xl border border-ink-200 bg-white transition duration-200 hover:border-ink-300 hover:shadow-pop">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-ink-100">
         {resource.image_url ? (
           <img
             src={resource.image_url}
             alt={resource.name}
             loading="lazy"
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
           />
         ) : (
           <div className="grid h-full place-items-center text-ink-300">
             {resource.kind === 'lab' ? (
-              <MicIcon className="h-10 w-10" />
+              <MicIcon className="h-12 w-12" />
             ) : (
-              <SlidersIcon className="h-10 w-10" />
+              <SlidersIcon className="h-12 w-12" />
             )}
           </div>
         )}
-        <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-medium text-ink-700 ring-1 ring-inset ring-white/50 backdrop-blur-md">
+        <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/65 px-3 py-1 text-[11px] font-medium text-ink-800 ring-1 ring-inset ring-white/50 backdrop-blur-md">
           {resource.kind === 'lab' ? (
             <HeadphonesIcon className="h-3 w-3" />
           ) : (
@@ -286,25 +285,25 @@ function ResourceCard({
           )}
           {resource.kind === 'lab' ? '实验室' : '设备'}
         </span>
-        <span className="absolute right-3 top-3 rounded-full bg-ink-900/55 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-md">
+        <span className="absolute right-4 top-4 rounded-full bg-ink-900/50 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-md">
           {resource.total_quantity} 名额
         </span>
       </div>
 
-      <div className="p-4">
-        <h3 className="text-[15px] font-semibold tracking-tight text-ink-900">
+      <div className="p-6">
+        <h3 className="text-xl font-semibold tracking-tight text-ink-900">
           {resource.name}
         </h3>
-        <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-ink-500">
+        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-500">
           {resource.description || '暂无描述'}
         </p>
 
       {!bookable ? (
-        <div className="mt-3 flex items-center gap-2 rounded-lg bg-ink-50 px-3 py-2 text-[13px] text-ink-400 ring-1 ring-inset ring-ink-200">
+        <div className="mt-5 flex items-center gap-2 rounded-2xl bg-ink-50 px-4 py-3 text-[13px] text-ink-400 ring-1 ring-inset ring-ink-200">
           <LockIcon className="h-4 w-4" /> 学生个人不可预约
         </div>
       ) : (
-        <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+        <div className="mt-5 grid grid-cols-3 gap-2">
           {slots.map((slot) => {
             const sa = availability?.slots.find((x) => x.slot.id === slot.id)
             const avail = sa?.available ?? resource.total_quantity
@@ -314,21 +313,17 @@ function ResourceCard({
                 key={slot.id}
                 disabled={full}
                 onClick={() => onPick({ resource, slot, available: avail })}
-                className={`rounded-lg border px-2.5 py-2 text-left transition ${
+                className={`rounded-2xl border px-3 py-3 text-left transition ${
                   full
                     ? 'cursor-not-allowed border-ink-100 bg-ink-50 text-ink-300'
-                    : 'border-ink-200 bg-white text-ink-700 hover:border-accent-400 hover:bg-accent-50'
+                    : 'border-ink-200 bg-white text-ink-800 hover:border-ink-900 hover:bg-ink-900 hover:text-white'
                 }`}
               >
                 <span className="block text-[13px] font-semibold">{slot.name}</span>
-                <span className="mt-0.5 block text-[11px] text-ink-400">
-                  {slot.start_time}-{slot.end_time}
+                <span className="mt-0.5 block text-[11px] opacity-60">
+                  {slot.start_time.slice(0, 5)}
                 </span>
-                <span
-                  className={`mt-1 block text-[11px] font-medium ${
-                    full ? 'text-ink-300' : 'text-emerald-600'
-                  }`}
-                >
+                <span className="mt-1.5 block text-[11px] font-medium opacity-80">
                   {full ? '已约满' : `剩 ${avail}`}
                 </span>
               </button>
@@ -559,23 +554,21 @@ function UsageRules() {
     },
   ]
   return (
-    <section className="mt-10 animate-fade-up">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="eyebrow">Guidelines</p>
-          <h2 className="mt-1.5 text-[17px] font-semibold tracking-tight text-ink-900">
-            录音实验室使用规定
-          </h2>
-        </div>
+    <section className="mt-24 animate-fade-up border-t border-ink-100 pt-16 sm:mt-32 sm:pt-24">
+      <div className="mb-10 text-center sm:mb-14">
+        <p className="eyebrow">Guidelines</p>
+        <h2 className="display mt-4 text-3xl sm:text-4xl">使用规定</h2>
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-10 sm:grid-cols-3 sm:gap-12">
         {rules.map((r, i) => (
-          <div key={r.title} className="card p-5">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-accent-50 text-[13px] font-semibold tabular-nums text-accent-600 ring-1 ring-inset ring-accent-100">
+          <div key={r.title} className="text-center">
+            <span className="mx-auto grid h-11 w-11 place-items-center rounded-full bg-ink-900 text-sm font-semibold tabular-nums text-white">
               {String(i + 1).padStart(2, '0')}
             </span>
-            <h3 className="mt-3 text-sm font-semibold text-ink-800">{r.title}</h3>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-ink-500">{r.body}</p>
+            <h3 className="mt-5 text-base font-semibold text-ink-900">{r.title}</h3>
+            <p className="mx-auto mt-2 max-w-xs text-[13px] leading-relaxed text-ink-500">
+              {r.body}
+            </p>
           </div>
         ))}
       </div>

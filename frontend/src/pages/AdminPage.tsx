@@ -61,7 +61,7 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
         onSubmit={submit}
         className="w-full max-w-sm animate-fade-up rounded-xl border border-ink-200 bg-white p-8 shadow-soft"
       >
-        <div className="grid h-11 w-11 place-items-center rounded-lg bg-accent-600 text-white">
+        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-ink-900 text-white">
           <MicIcon className="h-6 w-6" />
         </div>
         <h1 className="mt-5 text-xl font-semibold tracking-tight text-ink-900">预约系统后台</h1>
@@ -127,7 +127,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       <header className="sticky top-0 z-20 border-b border-ink-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent-600 text-white">
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-ink-900 text-white">
               <MicIcon className="h-[18px] w-[18px]" />
             </span>
             <div>
