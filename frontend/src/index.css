@@ -16,8 +16,8 @@ body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #fbf8f4;
-  background-image: linear-gradient(180deg, #fff9f1 0%, #fbf8f4 36%, #fbf8f4 100%);
+  background-color: #fbfaf7;
+  background-image: radial-gradient(circle at 20% 0%, rgba(232, 192, 105, 0.16), transparent 28%), linear-gradient(180deg, #fffaf3 0%, #fbfaf7 34%, #fbfaf7 100%);
   background-attachment: fixed;
   color: #29221d;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
@@ -31,10 +31,10 @@ body {
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium tracking-tight transition duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium tracking-tight transition duration-200 disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-gradient-to-br from-accent-400 to-accent-600 text-white shadow-glow hover:-translate-y-0.5 hover:from-accent-500 hover:to-accent-700 active:translate-y-0 active:scale-[0.98];
+    @apply btn bg-gradient-to-br from-accent-400 to-accent-600 text-white shadow-glow hover:from-accent-500 hover:to-accent-700 active:translate-y-0 active:scale-[0.98];
   }
   .btn-ghost {
     @apply btn bg-white/80 text-ink-700 ring-1 ring-inset ring-ink-200 hover:bg-white hover:ring-ink-300;
@@ -49,7 +49,7 @@ body {
     @apply mb-1.5 block text-[13px] font-medium text-ink-500;
   }
   .card {
-    @apply rounded-[1.35rem] bg-white/90 shadow-card ring-1 ring-ink-200/55 backdrop-blur-sm;
+    @apply rounded-2xl bg-white/90 shadow-card ring-1 ring-ink-200/60 backdrop-blur-sm;
   }
   .badge {
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;

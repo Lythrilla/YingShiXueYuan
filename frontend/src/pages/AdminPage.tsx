@@ -22,7 +22,6 @@ import {
   MicIcon,
   PlusIcon,
   SearchIcon,
-  SlidersIcon,
   UploadIcon,
 } from '../icons'
 
@@ -135,10 +134,10 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
 
   return (
     <div className="min-h-full">
-      <header className="sticky top-0 z-20 border-b border-ink-200/70 bg-ink-50/80 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-ink-200/70 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-2xl bg-gradient-to-br from-accent-400 to-accent-600 text-white shadow-glow">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-accent-50 text-accent-600 ring-1 ring-accent-100">
               <MicIcon className="h-[18px] w-[18px]" />
             </span>
             <div>
@@ -159,15 +158,15 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-5 py-7">
-        <nav className="mb-7 inline-flex gap-1 rounded-full bg-ink-100/70 p-1 ring-1 ring-ink-200/50">
+      <div className="mx-auto max-w-6xl px-5 py-6">
+        <nav className="mb-6 inline-flex gap-1 rounded-2xl bg-white/70 p-1 ring-1 ring-ink-200/70">
           {TABS.map(([key, label]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`rounded-full px-4 py-1.5 text-[13px] font-medium tracking-tight transition ${
+              className={`rounded-xl px-4 py-1.5 text-[13px] font-medium tracking-tight transition ${
                 tab === key
-                  ? 'bg-gradient-to-br from-accent-400 to-accent-600 text-white shadow-glow'
+                  ? 'bg-ink-900 text-white shadow-card'
                   : 'text-ink-500 hover:text-ink-800'
               }`}
             >
@@ -501,7 +500,7 @@ function ResourcesTab() {
 
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <div>
           <p className="eyebrow">Resources</p>
           <h2 className="mt-1 text-[17px] font-semibold tracking-tight text-ink-900">
@@ -513,56 +512,49 @@ function ResourcesTab() {
         </button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 xl:grid-cols-2">
         {resources.map((r) => (
-          <div key={r.id} className="card overflow-hidden">
-            <div className="h-28 bg-ink-100">
-              {r.image_url ? (
-                <img src={r.image_url} alt={r.name} className="h-full w-full object-cover" />
-              ) : (
-                <div className="grid h-full place-items-center bg-gradient-to-br from-accent-50 via-gold-50 to-ink-100 text-accent-300">
-                  <ImageIcon className="h-9 w-9" />
-                </div>
-              )}
-            </div>
-            <div className="p-4">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-accent-100 to-gold-100 text-accent-600 ring-1 ring-accent-200/50">
-                    {r.kind === 'lab' ? (
-                      <MicIcon className="h-5 w-5" />
-                    ) : (
-                      <SlidersIcon className="h-5 w-5" />
-                    )}
-                  </span>
-                  <div>
-                    <div className="font-semibold tracking-tight text-ink-900">{r.name}</div>
-                    <div className="text-[11px] text-ink-400">
-                      {r.kind === 'lab' ? '实验室' : '设备'} · 名额 {r.total_quantity}
+          <div key={r.id} className="card p-3">
+            <div className="flex gap-3">
+              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-ink-100 ring-1 ring-inset ring-ink-200/70">
+                {r.image_url ? (
+                  <img src={r.image_url} alt={r.name} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="grid h-full place-items-center bg-gradient-to-br from-accent-50 to-gold-50 text-accent-300">
+                    <ImageIcon className="h-7 w-7" />
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate font-semibold tracking-tight text-ink-900">{r.name}</div>
+                    <div className="mt-0.5 text-[11px] text-ink-400">
+                      {r.kind === 'lab' ? '实验室' : '设备'} · 每时段 {r.total_quantity} 名额
                     </div>
                   </div>
+                  {!r.is_active && (
+                    <span className="badge shrink-0 bg-ink-100 text-ink-400">已停用</span>
+                  )}
                 </div>
-                {!r.is_active && (
-                  <span className="badge bg-ink-100 text-ink-400">已停用</span>
-                )}
+                <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-ink-500">
+                  {r.description || '暂无描述'}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {!r.individual_bookable && (
+                    <span className="badge bg-amber-50 text-amber-700">个人不可预约</span>
+                  )}
+                  <span className="badge bg-ink-50 text-ink-500">排序 {r.sort_order}</span>
+                </div>
               </div>
-              <p className="mt-3 line-clamp-2 min-h-[2.5rem] text-[13px] leading-relaxed text-ink-500">
-                {r.description || '暂无描述'}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {!r.individual_bookable && (
-                  <span className="badge bg-amber-50 text-amber-700">个人不可预约</span>
-                )}
-                <span className="badge bg-ink-50 text-ink-500">排序 {r.sort_order}</span>
-              </div>
-              <div className="mt-4 flex gap-2">
-                <button className="btn-ghost flex-1 !py-2 text-[13px]" onClick={() => setEditing(r)}>
-                  编辑
-                </button>
-                <button className="btn-danger !py-2 text-[13px]" onClick={() => remove(r.id)}>
-                  删除
-                </button>
-              </div>
+            </div>
+            <div className="mt-2.5 flex gap-2 border-t border-ink-100 pt-2.5">
+              <button className="btn-ghost flex-1 !py-2 text-[13px]" onClick={() => setEditing(r)}>
+                编辑
+              </button>
+              <button className="btn-danger !py-2 text-[13px]" onClick={() => remove(r.id)}>
+                删除
+              </button>
             </div>
           </div>
         ))}
@@ -616,9 +608,9 @@ function ResourcesTab() {
             </label>
             <div className="sm:col-span-2">
               <span className="label">资源图片</span>
-              <div className="rounded-2xl border border-dashed border-ink-200 bg-ink-50/60 p-3">
+              <div className="rounded-2xl border border-ink-200 bg-white/70 p-3">
                 <div className="grid gap-3 sm:grid-cols-[132px_1fr]">
-                  <div className="h-24 overflow-hidden rounded-xl bg-white ring-1 ring-inset ring-ink-200">
+                  <div className="h-20 overflow-hidden rounded-xl bg-white ring-1 ring-inset ring-ink-200">
                     {editing.image_url ? (
                       <img
                         src={editing.image_url}
@@ -633,7 +625,7 @@ function ResourcesTab() {
                   </div>
                   <div className="flex flex-col justify-center">
                     <p className="text-[13px] leading-relaxed text-ink-500">
-                      上传后会自动填入图片地址，前台资源卡片与后台列表会同步预览。
+                      上传后自动填入地址，并同步到前台卡片。
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <label className="btn-ghost cursor-pointer !py-2 text-[13px]">
@@ -739,7 +731,7 @@ function SlotsTab() {
 
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <div>
           <p className="eyebrow">Time Slots</p>
           <h2 className="mt-1 text-[17px] font-semibold tracking-tight text-ink-900">时间段管理</h2>
@@ -846,7 +838,7 @@ function Modal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/45 p-0 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4">
-      <div className="max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-3xl bg-white p-5 shadow-pop sm:rounded-2xl sm:p-6">
+      <div className="max-h-[92vh] w-full max-w-xl animate-fade-up overflow-y-auto rounded-t-3xl bg-white p-4 shadow-pop sm:rounded-2xl sm:p-5">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold tracking-tight text-ink-900">{title}</h3>
           <button
