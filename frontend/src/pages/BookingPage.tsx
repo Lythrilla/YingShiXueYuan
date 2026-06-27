@@ -111,6 +111,7 @@ export default function BookingPage() {
           </div>
         )}
 
+        <UsageRules />
       </main>
 
       {selected && (
@@ -169,9 +170,9 @@ function Hero() {
       <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-ink-500 sm:text-lg">
         四间专业录音棚与同期拾音设备，选择日期与时段，一步完成预约。
       </p>
-      <div className="mt-8 inline-flex items-center gap-2 text-[13px] font-medium text-ink-400">
-        <CalendarIcon className="h-4 w-4" />
-        可提前 {BOOKING_WINDOW_DAYS} 天预约
+      <div className="mt-8 inline-flex items-center gap-2 rounded-full bg-ink-50 px-4 py-2 text-[13px] font-medium text-ink-500 ring-1 ring-inset ring-ink-100">
+        <CalendarIcon className="h-4 w-4 text-ink-400" />
+        可提前 {BOOKING_WINDOW_DAYS} 天预约，每日 08:00 开放最新 1 天可约时段
       </div>
     </section>
   )
@@ -534,5 +535,56 @@ function Field({
       </span>
       {children}
     </label>
+  )
+}
+
+function UsageRules() {
+  const rules: { title: string; items: string[] }[] = [
+    {
+      title: '使用时间',
+      items: [
+        '请严格按照预约时间段使用录音实验室及相关设备，避免超时影响后续人员的正常使用。',
+        '预约时间段已包含设备预热、调试及使用后的整理时间。如需超时，请提前与下一位预约者协商并取得同意。',
+      ],
+    },
+    {
+      title: '操作规范',
+      items: [
+        '使用前请务必熟悉录音设备的操作规程及安全注意事项，包括但不限于调音台、麦克风、音频接口、监听音箱等。',
+        '操作过程中请严格遵守实验室及设备的使用规定，严禁擅自更改设备参数、连接线路或进行非授权操作。',
+      ],
+    },
+    {
+      title: '记录与清洁',
+      items: [
+        '使用后请如实填写设备使用记录，内容包括实验 / 录音项目名称、使用设备状态及异常情况等。',
+        '使用完毕后，请整理麦克风、耳机、线材等设备，关闭电源，保持录音室及控制室整洁有序。',
+      ],
+    },
+  ]
+  return (
+    <section className="mt-24 animate-fade-up border-t border-ink-100 pt-16 sm:mt-32 sm:pt-24">
+      <div className="mb-10 text-center sm:mb-14">
+        <p className="eyebrow">Guidelines</p>
+        <h2 className="display mt-4 text-3xl sm:text-4xl">录音实验室使用规定</h2>
+      </div>
+      <div className="mx-auto grid max-w-4xl gap-10 sm:grid-cols-3 sm:gap-12">
+        {rules.map((r, i) => (
+          <div key={r.title}>
+            <span className="grid h-11 w-11 place-items-center rounded-full bg-ink-900 text-sm font-semibold tabular-nums text-white">
+              {String(i + 1).padStart(2, '0')}
+            </span>
+            <h3 className="mt-5 text-base font-semibold text-ink-900">{r.title}</h3>
+            <ul className="mt-3 space-y-2.5">
+              {r.items.map((it) => (
+                <li key={it} className="text-[13px] leading-relaxed text-ink-500">
+                  {it}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
