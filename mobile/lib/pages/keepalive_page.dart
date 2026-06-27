@@ -5,7 +5,8 @@ import '../theme.dart';
 import '../widgets/ui.dart';
 
 /// 后台保活引导页：
-/// 应用本身已用前台服务 + 守护服务 + 心跳保活；但小米/华为/OPPO/vivo/三星等
+/// 应用本身已用前台服务 + 守护服务 + 心跳/Job 兜底保活；
+/// 但小米/华为/OPPO/vivo/三星等
 /// 深度定制系统在「上划清理后台」后会杀进程并阻止自启动，必须由用户在系统里
 /// 授予「自启动 / 后台运行」白名单并关闭电池优化，代码无法绕过这一系统策略。
 class KeepAlivePage extends StatefulWidget {
@@ -45,9 +46,9 @@ class _KeepAlivePageState extends State<KeepAlivePage> {
   Future<void> _openAutoStart() async {
     final ok = await Native.openAutoStartSettings();
     if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('未找到厂商自启动页，已打开应用详情页，请手动开启「自启动 / 后台运行」'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('未找到厂商自启动页，已打开应用详情页，请手动开启「自启动 / 后台运行」')),
+      );
     }
   }
 
@@ -84,17 +85,24 @@ class _KeepAlivePageState extends State<KeepAlivePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('让监控不被系统杀掉',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.ink900)),
+                      Text(
+                        '让监控不被系统杀掉',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.ink900,
+                        ),
+                      ),
                       SizedBox(height: 8),
                       Text(
-                        '应用已开启前台常驻服务并会在被杀后自动拉起。但部分手机（小米/华为/OPPO/vivo/三星等）'
+                        '应用已开启前台常驻服务、守护服务、心跳和 Job 兜底，'
+                        '并会在被杀后自动拉起。但部分手机（小米/华为/OPPO/vivo/三星等）'
                         '在「上划清理后台」后会强制杀掉进程并禁止自启动——这属于系统策略，必须按下面两步手动授权。',
                         style: TextStyle(
-                            fontSize: 13, height: 1.5, color: AppColors.ink600),
+                          fontSize: 13,
+                          height: 1.5,
+                          color: AppColors.ink600,
+                        ),
                       ),
                     ],
                   ),
@@ -105,24 +113,30 @@ class _KeepAlivePageState extends State<KeepAlivePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(children: [
-                        Icon(
+                      Row(
+                        children: [
+                          Icon(
                             _batteryOk
                                 ? Icons.check_circle
                                 : Icons.error_outline,
                             size: 20,
                             color: _batteryOk
                                 ? AppColors.emerald600
-                                : AppColors.rose600),
-                        const SizedBox(width: 8),
-                        Text(_batteryOk ? '已允许（无电池优化）' : '尚未允许，建议开启',
+                                : AppColors.rose600,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _batteryOk ? '已允许（无电池优化）' : '尚未允许，建议开启',
                             style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: _batteryOk
-                                    ? AppColors.emerald600
-                                    : AppColors.rose600)),
-                      ]),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: _batteryOk
+                                  ? AppColors.emerald600
+                                  : AppColors.rose600,
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
@@ -140,11 +154,14 @@ class _KeepAlivePageState extends State<KeepAlivePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(_hint,
-                          style: const TextStyle(
-                              fontSize: 13,
-                              height: 1.5,
-                              color: AppColors.ink600)),
+                      Text(
+                        _hint,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          height: 1.5,
+                          color: AppColors.ink600,
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,

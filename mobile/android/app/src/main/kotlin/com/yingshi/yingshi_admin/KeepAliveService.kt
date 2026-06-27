@@ -13,12 +13,18 @@ class KeepAliveService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         KeepAliveReceiver.ensureBackgroundService(applicationContext)
         KeepAliveReceiver.schedule(applicationContext)
+        KeepAliveReceiver.scheduleJob(applicationContext)
         return START_STICKY
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        // 用户上划清理后立即安排一次快速兜底拉活（带 while-idle 豁免，可后台启前台服务）。
-        KeepAliveReceiver.schedule(applicationContext, 1000L)
+        KeepAliveReceiver.ensureBackgroundService(applicationContext)
+        KeepAliveReceiver.scheduleFastRecovery(applicationContext)
         super.onTaskRemoved(rootIntent)
+    }
+
+    override fun onDestroy() {
+        KeepAliveReceiver.scheduleFastRecovery(applicationContext)
+        super.onDestroy()
     }
 }
