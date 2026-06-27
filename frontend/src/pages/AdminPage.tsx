@@ -271,7 +271,7 @@ function OverviewTab() {
         <StatCard label="今日预约" value={stats?.today ?? 0} tone="accent" />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-2">
         <ChartCard title="近 14 天预约趋势" subtitle="不含已取消">
           <VBarChart data={trend} />
         </ChartCard>
@@ -299,10 +299,10 @@ function ChartCard({
   children: React.ReactNode
 }) {
   return (
-    <div className="card p-4">
-      <div className="mb-4 flex items-baseline justify-between">
-        <h3 className="text-sm font-semibold tracking-tight text-ink-900">{title}</h3>
-        {subtitle && <span className="text-[11px] text-ink-400">{subtitle}</span>}
+    <div className="card min-w-0 overflow-hidden p-4">
+      <div className="mb-4 flex items-baseline justify-between gap-2">
+        <h3 className="truncate text-sm font-semibold tracking-tight text-ink-900">{title}</h3>
+        {subtitle && <span className="shrink-0 text-[11px] text-ink-400">{subtitle}</span>}
       </div>
       {children}
     </div>
@@ -312,9 +312,12 @@ function ChartCard({
 function VBarChart({ data }: { data: { label: string; value: number }[] }) {
   const max = Math.max(1, ...data.map((d) => d.value))
   return (
-    <div className="flex h-44 items-end gap-1.5">
+    <div className="flex h-44 min-w-0 items-end gap-1.5">
       {data.map((d) => (
-        <div key={d.label} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
+        <div
+          key={d.label}
+          className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1"
+        >
           <span className="text-[10px] tabular-nums text-ink-400">{d.value || ''}</span>
           <div
             className="w-full max-w-[18px] rounded-t bg-ink-900"
@@ -358,7 +361,7 @@ function Donut({ segments }: { segments: { label: string; value: number; color: 
   const c = 2 * Math.PI * r
   let acc = 0
   return (
-    <div className="flex items-center gap-5">
+    <div className="flex min-w-0 items-center gap-5">
       <div className="relative h-32 w-32 shrink-0">
         <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
           <circle cx="50" cy="50" r={r} fill="none" stroke="#f1f1f2" strokeWidth="13" />
@@ -388,7 +391,7 @@ function Donut({ segments }: { segments: { label: string; value: number; color: 
           <span className="text-[10px] text-ink-400">总计</span>
         </div>
       </div>
-      <div className="space-y-2">
+      <div className="min-w-0 space-y-2">
         {segments.map((s) => (
           <div key={s.label} className="flex items-center gap-2 text-[13px]">
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
