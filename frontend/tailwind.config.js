@@ -13,19 +13,19 @@ export default {
         ],
       },
       colors: {
-        // Warm sand → espresso neutral scale: the primary surface / text language.
+        // Neutral gray scale: the primary surface / text language.
         ink: {
-          50: '#faf7f3',
-          100: '#f3ece4',
-          200: '#e8ddd0',
-          300: '#d6c4b1',
-          400: '#b4a08a',
-          500: '#8d7b67',
-          600: '#6b5b4b',
-          700: '#4f4338',
-          800: '#382f28',
-          900: '#29221d',
-          950: '#1b1612',
+          50: '#fafafa',
+          100: '#f4f4f5',
+          200: '#e4e4e7',
+          300: '#d4d4d8',
+          400: '#a1a1aa',
+          500: '#71717a',
+          600: '#52525b',
+          700: '#3f3f46',
+          800: '#27272a',
+          900: '#18181b',
+          950: '#09090b',
         },
         // Warm terracotta / clay accent — inviting, used for primary actions & highlights.
         accent: {
@@ -48,16 +48,9 @@ export default {
         },
       },
       boxShadow: {
-        card: '0 1px 2px rgba(60, 42, 30, 0.04), 0 8px 20px -18px rgba(60, 42, 30, 0.18)',
-        soft: '0 14px 34px -26px rgba(60, 42, 30, 0.24)',
-        pop: '0 24px 56px -26px rgba(60, 42, 30, 0.30)',
-        glow: '0 10px 24px -16px rgba(219, 98, 56, 0.42)',
-      },
-      backgroundImage: {
-        'warm-hero':
-          'radial-gradient(120% 120% at 100% 0%, #db6238 0%, #c44d28 28%, #7a3a26 60%, #2b1d16 100%)',
-        'warm-page':
-          'linear-gradient(180deg, #fdf6ee 0%, #faf7f3 40%, #faf7f3 100%)',
+        card: '0 1px 2px rgba(24, 24, 27, 0.04)',
+        soft: '0 4px 14px -8px rgba(24, 24, 27, 0.12)',
+        pop: '0 16px 40px -20px rgba(24, 24, 27, 0.22)',
       },
       keyframes: {
         'fade-up': {
@@ -68,15 +61,10 @@ export default {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-10px)' },
-        },
       },
       animation: {
-        'fade-up': 'fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
-        'fade-in': 'fade-in 0.3s ease-out both',
-        float: 'float 9s ease-in-out infinite',
+        'fade-up': 'fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'fade-in': 'fade-in 0.25s ease-out both',
       },
     },
   },
