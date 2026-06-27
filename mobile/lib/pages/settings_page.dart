@@ -17,7 +17,6 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _vibration = true;
   bool _fullscreen = true;
   bool _relentless = true;
-  int _poll = 20;
   String _server = '';
   bool _loaded = false;
 
@@ -32,7 +31,6 @@ class _SettingsPageState extends State<SettingsPage> {
     _vibration = await Store.alertVibration();
     _fullscreen = await Store.alertFullscreen();
     _relentless = await Store.alertRelentless();
-    _poll = await Store.pollSeconds();
     _server = await Store.serverUrl();
     if (mounted) setState(() => _loaded = true);
   }
@@ -48,30 +46,6 @@ class _SettingsPageState extends State<SettingsPage> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                _sectionTitle('推送方式'),
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Row(children: [
-                        Icon(Icons.bolt, size: 18, color: AppColors.accent500),
-                        SizedBox(width: 8),
-                        Text('实时长连接推送（省电）',
-                            style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.ink800)),
-                      ]),
-                      SizedBox(height: 8),
-                      Text(
-                        '已启用 SSE 长连接：App 只维持一条空闲连接，服务器有新预约或到点开门时会即时推送，几乎不耗电、延迟低于 1 秒。下方的「检查频率」仅作为长连接断开时的兜底轮询。',
-                        style:
-                            TextStyle(fontSize: 12.5, color: AppColors.ink500, height: 1.5),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
                 _sectionTitle('提醒方式'),
                 AppCard(
                   padding: EdgeInsets.zero,
@@ -98,42 +72,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 AppCard(
                   padding: EdgeInsets.zero,
                   child: Column(children: [
-                    _switch('不处理就一直提醒', '只要还有待处理预约，每个检查周期都会再次响铃 / 震动',
+                    _switch('不处理就一直提醒', '只要还有待处理预约，就会持续响铃 / 震动',
                         _relentless, (v) async {
                       await Store.setAlertRelentless(v);
                       setState(() => _relentless = v);
                       _notifyService();
                     }),
                   ]),
-                ),
-                const SizedBox(height: 18),
-                _sectionTitle('检查频率'),
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('每 $_poll 秒检查一次新预约',
-                          style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.ink800)),
-                      Slider(
-                        value: _poll.toDouble(),
-                        min: 10,
-                        max: 120,
-                        divisions: 11,
-                        activeColor: AppColors.ink900,
-                        label: '$_poll 秒',
-                        onChanged: (v) => setState(() => _poll = v.round()),
-                        onChangeEnd: (v) async {
-                          await Store.setPollSeconds(v.round());
-                          _notifyService();
-                        },
-                      ),
-                      const Text('频率越高提醒越及时，但更耗电。',
-                          style: TextStyle(fontSize: 12, color: AppColors.ink400)),
-                    ],
-                  ),
                 ),
                 const SizedBox(height: 18),
                 _sectionTitle('服务器'),
