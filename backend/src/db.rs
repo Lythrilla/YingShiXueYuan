@@ -342,6 +342,11 @@ pub fn list_bookings(conn: &Connection, f: &BookingFilter) -> rusqlite::Result<V
     Ok(out)
 }
 
+pub fn delete_booking(conn: &Connection, id: i64) -> rusqlite::Result<()> {
+    conn.execute("DELETE FROM bookings WHERE id = ?1", [id])?;
+    Ok(())
+}
+
 pub fn get_booking(conn: &Connection, id: i64) -> rusqlite::Result<Option<Booking>> {
     let mut stmt = conn.prepare("SELECT * FROM bookings WHERE id = ?1")?;
     let mut rows = stmt.query([id])?;

@@ -96,8 +96,25 @@ class _BookingsTabState extends State<BookingsTab> {
         '已取消');
   }
 
+  Future<void> _delete(Booking b) async {
+    final ok = await _confirmDelete('删除预约', '确认彻底删除「${b.applicantName} · ${b.resource.name}」的预约记录？删除后不可恢复。');
+    if (!ok) return;
+    await _run(() async => (await ApiClient.fromStore()).deleteBooking(b.id), '已删除');
+  }
+
   Future<void> _batch(String op) async {
     if (_selected.isEmpty) return;
+    if (op == 'delete') {
+      final ok = await _confirmDelete(
+          '批量删除 ${_selected.length} 条', '确认彻底删除选中的 ${_selected.length} 条预约记录？删除后不可恢复。');
+      if (!ok) return;
+      await _run(() async {
+        final n = await (await ApiClient.fromStore()).batch('delete', _selected.toList());
+        if (mounted) setState(() => _selected.clear());
+        return n;
+      }, '已批量删除');
+      return;
+    }
     final isVerify = op == 'verify';
     final note = await _askNote(
         isVerify ? '批量通过 ${_selected.length} 条' : '批量取消 ${_selected.length} 条',
@@ -111,6 +128,27 @@ class _BookingsTabState extends State<BookingsTab> {
       if (mounted) setState(() => _selected.clear());
       return n;
     }, isVerify ? '已批量通过' : '已批量取消');
+  }
+
+  Future<bool> _confirmDelete(String title, String message) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('返回')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.rose600),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
   }
 
   Future<void> _run(Future<dynamic> Function() fn, String okMsg) async {
@@ -402,20 +440,30 @@ class _BookingsTabState extends State<BookingsTab> {
                       color: AppColors.ink700)),
               const Spacer(),
               OutlinedButton(
+                onPressed: _selected.isEmpty ? null : () => _batch('delete'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.rose600,
+                  side: const BorderSide(color: AppColors.rose200),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                child: const Text('删除'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
                 onPressed: _selected.isEmpty ? null : () => _batch('cancel'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.rose600,
                   side: const BorderSide(color: AppColors.rose200),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                 ),
-                child: const Text('批量取消'),
+                child: const Text('取消'),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: _selected.isEmpty ? null : () => _batch('verify'),
                 style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 20)),
-                child: const Text('批量通过'),
+                    padding: const EdgeInsets.symmetric(horizontal: 16)),
+                child: const Text('通过'),
               ),
             ],
           ),
@@ -484,33 +532,47 @@ class _BookingsTabState extends State<BookingsTab> {
               if (b.adminNote.isNotEmpty)
                 InfoRow(Icons.sticky_note_2_outlined,
                     '备注：${b.adminNote}${b.processedBy.isNotEmpty ? '（${b.processedBy}）' : ''}'),
-              if (!_selecting && b.status == 'booked') ...[
+              if (!_selecting) ...[
                 const SizedBox(height: 14),
                 const Divider(height: 1),
                 const SizedBox(height: 12),
                 Row(children: [
-                  Expanded(
-                    child: TapScale(
-                      child: _actionButton(
-                        label: '通过',
-                        icon: Icons.check_circle_outline,
-                        bg: AppColors.emerald50,
-                        fg: AppColors.emerald700,
-                        onTap: () => _verify(b),
+                  if (b.status == 'booked') ...[
+                    Expanded(
+                      child: TapScale(
+                        child: _actionButton(
+                          label: '通过',
+                          icon: Icons.check_circle_outline,
+                          bg: AppColors.emerald50,
+                          fg: AppColors.emerald700,
+                          onTap: () => _verify(b),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TapScale(
-                      child: _actionButton(
-                        label: '取消',
-                        icon: Icons.cancel_outlined,
-                        bg: Colors.white,
-                        fg: AppColors.rose600,
-                        border: AppColors.rose200,
-                        onTap: () => _cancel(b),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TapScale(
+                        child: _actionButton(
+                          label: '取消',
+                          icon: Icons.cancel_outlined,
+                          bg: Colors.white,
+                          fg: AppColors.rose600,
+                          border: AppColors.rose200,
+                          onTap: () => _cancel(b),
+                        ),
                       ),
+                    ),
+                    const SizedBox(width: 10),
+                  ] else
+                    const Spacer(),
+                  TapScale(
+                    child: _actionButton(
+                      label: '删除',
+                      icon: Icons.delete_outline,
+                      bg: Colors.white,
+                      fg: AppColors.rose600,
+                      border: AppColors.rose200,
+                      onTap: () => _delete(b),
                     ),
                   ),
                 ]),
