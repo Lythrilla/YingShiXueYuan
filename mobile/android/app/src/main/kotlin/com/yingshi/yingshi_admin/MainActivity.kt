@@ -17,6 +17,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        startKeepAlive()
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -32,6 +33,16 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    /// 启动守护服务并排程保活心跳，确保上划清理后台后监控服务仍被持续拉活。
+    private fun startKeepAlive() {
+        try {
+            startService(Intent(this, KeepAliveService::class.java))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        KeepAliveReceiver.schedule(applicationContext)
     }
 
     private fun pickRingtone(current: String?, result: MethodChannel.Result) {

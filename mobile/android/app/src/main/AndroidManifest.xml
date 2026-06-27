@@ -46,6 +46,26 @@
             android:stopWithTask="false"
             android:exported="false"
             tools:replace="android:foregroundServiceType,android:stopWithTask,android:exported" />
+
+        <!-- 守护服务：上划清理后台时立即拉回监控服务（与监控服务同进程，不额外占用通知） -->
+        <service
+            android:name=".KeepAliveService"
+            android:enabled="true"
+            android:exported="false"
+            android:stopWithTask="false" />
+
+        <!-- 保活心跳 + 开机/更新自启：定时检查并拉活监控服务 -->
+        <receiver
+            android:name=".KeepAliveReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.yingshi.yingshi_admin.KEEP_ALIVE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
     <queries>
         <intent>
