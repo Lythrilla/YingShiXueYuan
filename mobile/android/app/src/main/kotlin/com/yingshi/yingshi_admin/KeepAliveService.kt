@@ -112,7 +112,7 @@ class KeepAliveService : Service() {
         val channel = NotificationChannel(
             CHANNEL_ID,
             "后台守护服务",
-            NotificationManager.IMPORTANCE_LOW
+            NotificationManager.IMPORTANCE_MIN
         ).apply {
             description = "守护后台监控服务，降低被系统清理的概率"
             setSound(null, null)

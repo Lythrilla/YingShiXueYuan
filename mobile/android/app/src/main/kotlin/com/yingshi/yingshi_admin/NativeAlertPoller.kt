@@ -1,17 +1,10 @@
 package com.yingshi.yingshi_admin
 
-import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
-import android.media.AudioAttributes
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
-import android.provider.Settings
-import androidx.core.app.NotificationCompat
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
@@ -25,10 +18,6 @@ object NativeAlertPoller {
     private const val FLUTTER_PREFS = "FlutterSharedPreferences"
     private const val NATIVE_PREFS = "NativeAlertPoller"
     private const val KEY_TOKEN = "flutter.token"
-    private const val KEY_SOUND = "flutter.alert_sound"
-    private const val KEY_VIBRATION = "flutter.alert_vibration"
-    private const val KEY_FULLSCREEN = "flutter.alert_fullscreen"
-    private const val KEY_RELENTLESS = "flutter.alert_relentless"
     private const val KEY_POLL_SECONDS = "flutter.poll_seconds"
     private const val KEY_SEEN_IDS = "native_seen_pending_ids"
     private const val KEY_NATIVE_TOKEN = "native_token"
@@ -38,14 +27,8 @@ object NativeAlertPoller {
     private const val KEY_NATIVE_RELENTLESS = "native_alert_relentless"
     private const val KEY_NATIVE_POLL_SECONDS = "native_poll_seconds"
 
-    private const val SUMMARY_CHANNEL_ID = "yingshi_summary"
-    private const val ALERT_CHANNEL_ID = "yingshi_native_alert_v2"
-    private const val ALERT_SOUND_CHANNEL_ID = "yingshi_native_alert_sound_v2"
-    private const val ALERT_VIBRATION_CHANNEL_ID = "yingshi_native_alert_vibration_v2"
-    private const val ALERT_SILENT_CHANNEL_ID = "yingshi_native_alert_silent_v2"
     private const val BOOKING_ID_BASE = 100000
     private const val DOOR_ID_BASE = 300000
-    private const val SUMMARY_NOTIFICATION_ID = 9990
 
     private const val ACTION_APPROVE = "com.yingshi.yingshi_admin.NATIVE_APPROVE"
     private const val ACTION_CANCEL = "com.yingshi.yingshi_admin.NATIVE_CANCEL"
@@ -61,7 +44,6 @@ object NativeAlertPoller {
 
     fun start(context: Context) {
         appContext = context.applicationContext
-        ensureChannels(context.applicationContext)
         if (started.compareAndSet(false, true)) {
             pollSoon(0L)
             startSseLoop(context.applicationContext)
@@ -98,7 +80,6 @@ object NativeAlertPoller {
     fun pollNow(context: Context? = appContext) {
         val ctx = context?.applicationContext ?: return
         appContext = ctx
-        ensureChannels(ctx)
         if (!polling.compareAndSet(false, true)) return
         Thread {
             val wakeLock = acquireWakeLock(ctx)
@@ -174,31 +155,9 @@ object NativeAlertPoller {
         val stale = seen - pendingIds
         for (id in stale) clearBooking(context, id)
 
-        val sound = readBool(context, KEY_NATIVE_SOUND, KEY_SOUND, true)
-        val vibration = readBool(context, KEY_NATIVE_VIBRATION, KEY_VIBRATION, true)
-        val fullscreen = readBool(context, KEY_NATIVE_FULLSCREEN, KEY_FULLSCREEN, true)
-        val relentless = readBool(context, KEY_NATIVE_RELENTLESS, KEY_RELENTLESS, true)
-        val firstId = bookings.firstOrNull()?.id
+        // 有新的待处理预约时震动一下，不响铃、不弹通知。
         val hasNewBooking = bookings.any { !seen.contains(it.id) }
-
-        for (booking in bookings) {
-            val shouldAlert = !seen.contains(booking.id) ||
-                (relentless && booking.id == firstId)
-            showBookingNotification(
-                context,
-                booking,
-                fullScreen = fullscreen && !seen.contains(booking.id),
-                playSound = sound && shouldAlert,
-                vibrate = vibration && shouldAlert,
-            )
-        }
-        showSummary(context, pendingIds.size)
-        NativeAlertSignal.sync(
-            context,
-            shouldRun = pendingIds.isNotEmpty() && (relentless || hasNewBooking),
-            playSound = sound,
-            vibrate = vibration,
-        )
+        if (hasNewBooking) NativeAlertSignal.buzz(context)
         saveSeenIds(context, pendingIds)
     }
 
@@ -284,186 +243,16 @@ object NativeAlertPoller {
         return bookings
     }
 
-    private fun showBookingNotification(
-        context: Context,
-        booking: NativeBooking,
-        fullScreen: Boolean,
-        playSound: Boolean,
-        vibrate: Boolean,
-    ) {
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channelId = alertChannelId(playSound, vibrate)
-        val launchIntent =
-            context.packageManager.getLaunchIntentForPackage(context.packageName) ?: Intent()
-        val flags = PendingIntent.FLAG_UPDATE_CURRENT or immutableFlag()
-        val contentIntent = PendingIntent.getActivity(
-            context,
-            BOOKING_ID_BASE + booking.id,
-            launchIntent,
-            flags,
-        )
-        val fullScreenIntent =
-            if (fullScreen) contentIntent else null
-        val approveIntent = Intent(context, NativeAlertActionReceiver::class.java)
-            .setAction(ACTION_APPROVE)
-            .putExtra(EXTRA_BOOKING_ID, booking.id)
-            .putExtra(EXTRA_ACTION, ACTION_APPROVE)
-        val cancelIntent = Intent(context, NativeAlertActionReceiver::class.java)
-            .setAction(ACTION_CANCEL)
-            .putExtra(EXTRA_BOOKING_ID, booking.id)
-            .putExtra(EXTRA_ACTION, ACTION_CANCEL)
-        val approvePi = PendingIntent.getBroadcast(
-            context,
-            BOOKING_ID_BASE + booking.id + 10_000,
-            approveIntent,
-            flags,
-        )
-        val cancelPi = PendingIntent.getBroadcast(
-            context,
-            BOOKING_ID_BASE + booking.id + 20_000,
-            cancelIntent,
-            flags,
-        )
-        val detail = "${booking.resource} · ${booking.date} ${booking.slotName} ${booking.slotRange}\n" +
-            "电话 ${booking.phone}${if (booking.instructor.isNotEmpty()) " · 指导 ${booking.instructor}" else ""} · " +
-            "${booking.numPeople}人/${booking.quantity}套"
-        val builder = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(context.applicationInfo.icon)
-            .setContentTitle("待处理预约：${booking.applicant}")
-            .setContentText("${booking.resource} · ${booking.date} ${booking.slotName}")
-            .setStyle(NotificationCompat.BigTextStyle().bigText(detail))
-            .setContentIntent(contentIntent)
-            .setOngoing(true)
-            .setAutoCancel(false)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setOnlyAlertOnce(false)
-            .addAction(context.applicationInfo.icon, "通过", approvePi)
-            .addAction(context.applicationInfo.icon, "取消", cancelPi)
-        if (fullScreenIntent != null) builder.setFullScreenIntent(fullScreenIntent, true)
-        if (playSound || vibrate) nm.cancel(BOOKING_ID_BASE + booking.id)
-        nm.notify(BOOKING_ID_BASE + booking.id, builder.build())
-    }
-
-    private fun showSummary(context: Context, count: Int) {
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (count <= 0) {
-            nm.cancel(SUMMARY_NOTIFICATION_ID)
-            return
-        }
-        val launchIntent =
-            context.packageManager.getLaunchIntentForPackage(context.packageName) ?: Intent()
-        val pi = PendingIntent.getActivity(
-            context,
-            SUMMARY_NOTIFICATION_ID,
-            launchIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or immutableFlag(),
-        )
-        val notification = NotificationCompat.Builder(context, SUMMARY_CHANNEL_ID)
-            .setSmallIcon(context.applicationInfo.icon)
-            .setContentTitle("${count} 条预约待处理")
-            .setContentText("原生守护服务实时监控中，处理后提醒会自动消失")
-            .setContentIntent(pi)
-            .setOngoing(true)
-            .setAutoCancel(false)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setOnlyAlertOnce(true)
-            .build()
-        nm.notify(SUMMARY_NOTIFICATION_ID, notification)
-    }
-
     private fun clearAllKnown(context: Context) {
         val ids = readSeenIds(context)
         for (id in ids) clearBooking(context, id)
-        showSummary(context, 0)
         NativeAlertSignal.stop(context)
         saveSeenIds(context, emptySet())
-    }
-
-    private fun ensureChannels(context: Context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val alarmUri = Settings.System.DEFAULT_ALARM_ALERT_URI
-        val attrs = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_ALARM)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
-        nm.createNotificationChannel(
-            NotificationChannel(
-                ALERT_CHANNEL_ID,
-                "新预约强提醒（响铃+震动）",
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                setSound(alarmUri, attrs)
-                enableVibration(true)
-                enableLights(true)
-            },
-        )
-        nm.createNotificationChannel(
-            NotificationChannel(
-                ALERT_SOUND_CHANNEL_ID,
-                "新预约强提醒（响铃）",
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                setSound(alarmUri, attrs)
-                enableVibration(false)
-                enableLights(true)
-            },
-        )
-        nm.createNotificationChannel(
-            NotificationChannel(
-                ALERT_VIBRATION_CHANNEL_ID,
-                "新预约强提醒（震动）",
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                setSound(null, null)
-                enableVibration(true)
-                enableLights(true)
-            },
-        )
-        nm.createNotificationChannel(
-            NotificationChannel(
-                ALERT_SILENT_CHANNEL_ID,
-                "新预约提醒（静音刷新）",
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                setSound(null, null)
-                enableVibration(false)
-                enableLights(true)
-            },
-        )
-        nm.createNotificationChannel(
-            NotificationChannel(
-                SUMMARY_CHANNEL_ID,
-                "待处理汇总",
-                NotificationManager.IMPORTANCE_HIGH,
-            ),
-        )
-    }
-
-    private fun alertChannelId(playSound: Boolean, vibrate: Boolean): String {
-        if (playSound && vibrate) return ALERT_CHANNEL_ID
-        if (playSound) return ALERT_SOUND_CHANNEL_ID
-        if (vibrate) return ALERT_VIBRATION_CHANNEL_ID
-        return ALERT_SILENT_CHANNEL_ID
     }
 
     private fun readToken(context: Context): String? =
         nativePrefs(context).getString(KEY_NATIVE_TOKEN, null)
             ?: flutterPrefs(context).getString(KEY_TOKEN, null)
-
-    private fun readBool(
-        context: Context,
-        nativeKey: String,
-        flutterKey: String,
-        default: Boolean,
-    ): Boolean {
-        val native = nativePrefs(context)
-        if (native.contains(nativeKey)) return native.getBoolean(nativeKey, default)
-        val prefs = flutterPrefs(context)
-        return if (prefs.contains(flutterKey)) prefs.getBoolean(flutterKey, default) else default
-    }
 
     private fun readPollMillis(context: Context): Long {
         val native = nativePrefs(context)
@@ -499,13 +288,6 @@ object NativeAlertPoller {
 
     private fun nativePrefs(context: Context) =
         context.getSharedPreferences(NATIVE_PREFS, Context.MODE_PRIVATE)
-
-    private fun immutableFlag(): Int =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            PendingIntent.FLAG_IMMUTABLE
-        } else {
-            0
-        }
 
     private fun acquireWakeLock(context: Context): PowerManager.WakeLock? {
         return try {
