@@ -1,7 +1,8 @@
 use rusqlite::{params, Connection, OptionalExtension, Row};
 
 use crate::models::{
-    Admin, Booking, DutyShift, LabeledCount, OperationLog, Resource, Slot, StatsReport,
+    Admin, Booking, DeviceToken, DutyShift, LabeledCount, OperationLog, Resource, Slot,
+    StatsReport,
 };
 
 pub fn open(path: &std::path::Path) -> rusqlite::Result<Connection> {
@@ -75,6 +76,15 @@ pub fn init_schema(conn: &Connection) -> rusqlite::Result<()> {
             resource_id INTEGER NOT NULL DEFAULT 0,
             admin_username TEXT NOT NULL,
             created_at TEXT NOT NULL DEFAULT ''
+        );
+        CREATE TABLE IF NOT EXISTS device_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL DEFAULT '',
+            vendor TEXT NOT NULL,
+            token TEXT NOT NULL,
+            manufacturer TEXT NOT NULL DEFAULT '',
+            updated_at TEXT NOT NULL DEFAULT '',
+            UNIQUE(vendor, token)
         );
         "#,
     )?;
@@ -722,4 +732,45 @@ pub fn mark_reminded(conn: &Connection, id: i64) -> rusqlite::Result<()> {
         params![now_iso(), id],
     )?;
     Ok(())
+}
+
+// ---------- Device push tokens（厂商离线推送令牌） ----------
+/// 登记/更新一台设备的推送令牌；(vendor, token) 唯一，重复上报只更新归属与时间。
+pub fn upsert_device_token(
+    conn: &Connection,
+    username: &str,
+    vendor: &str,
+    token: &str,
+    manufacturer: &str,
+) -> rusqlite::Result<()> {
+    conn.execute(
+        "INSERT INTO device_tokens (username, vendor, token, manufacturer, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5)
+         ON CONFLICT(vendor, token) DO UPDATE SET
+            username = excluded.username,
+            manufacturer = excluded.manufacturer,
+            updated_at = excluded.updated_at",
+        params![username, vendor, token, manufacturer, now_iso()],
+    )?;
+    Ok(())
+}
+
+pub fn delete_device_token(conn: &Connection, token: &str) -> rusqlite::Result<()> {
+    conn.execute("DELETE FROM device_tokens WHERE token = ?1", params![token])?;
+    Ok(())
+}
+
+/// 所有已登记的设备令牌（当前向全部管理员设备推送）。
+pub fn all_device_tokens(conn: &Connection) -> rusqlite::Result<Vec<DeviceToken>> {
+    let mut stmt =
+        conn.prepare("SELECT username, vendor, token, manufacturer FROM device_tokens")?;
+    let rows = stmt.query_map([], |row| {
+        Ok(DeviceToken {
+            username: row.get(0)?,
+            vendor: row.get(1)?,
+            token: row.get(2)?,
+            manufacturer: row.get(3)?,
+        })
+    })?;
+    rows.collect()
 }

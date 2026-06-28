@@ -101,6 +101,14 @@ fn fire(state: &AppState, b: &crate::models::Booking, weekday: i64) -> rusqlite:
         "ts": db::now_iso(),
     });
     let _ = state.events.send(payload.to_string());
+    // 厂商离线推送：开门提醒到点时，App 被杀/不在前台也能收到。
+    state.notify_push(
+        "开门提醒",
+        format!(
+            "{} · {} {} · {}",
+            b.resource.name, b.date, b.slot.name, b.applicant_name
+        ),
+    );
     Ok(())
 }
 

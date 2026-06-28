@@ -5,6 +5,7 @@ mod error;
 mod excel;
 mod handlers;
 mod models;
+mod push;
 mod reminder;
 mod seed;
 mod web;
@@ -56,6 +57,9 @@ async fn main() {
         .route("/api/admin/me", get(handlers::me))
         // 实时推送（SSE）
         .route("/api/admin/events", get(handlers::admin_events))
+        // 厂商离线推送令牌登记
+        .route("/api/admin/push/register", post(handlers::push_register))
+        .route("/api/admin/push/unregister", post(handlers::push_unregister))
         // admin resources
         .route("/api/admin/resources", get(handlers::admin_list_resources))
         .route("/api/admin/resources", post(handlers::create_resource))

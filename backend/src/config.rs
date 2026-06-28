@@ -20,6 +20,35 @@ pub struct Config {
     pub tz_offset_hours: i64,
     /// 是否启用开门提醒。
     pub reminder_enabled: bool,
+    /// 厂商推送配置（华为 HMS / OPPO·一加 Heytap）。
+    pub push: PushConfig,
+}
+
+/// 厂商推送凭据；未配置的厂商对应字段为 None，调度时自动跳过。
+#[derive(Debug, Clone, Default)]
+pub struct PushConfig {
+    pub huawei: Option<HuaweiPush>,
+    pub oppo: Option<OppoPush>,
+}
+
+#[derive(Debug, Clone)]
+pub struct HuaweiPush {
+    /// AppGallery Connect 的 App ID（同时作为 OAuth client_id）。
+    pub app_id: String,
+    /// OAuth client_secret（App secret）。
+    pub client_secret: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct OppoPush {
+    pub app_key: String,
+    pub master_secret: String,
+}
+
+impl PushConfig {
+    pub fn is_empty(&self) -> bool {
+        self.huawei.is_none() && self.oppo.is_none()
+    }
 }
 
 /// 配置文件（config.toml）中可选字段。缺省字段使用内置默认值。
@@ -35,6 +64,10 @@ struct FileConfig {
     reminder_lead_minutes: Option<i64>,
     tz_offset_hours: Option<i64>,
     reminder_enabled: Option<bool>,
+    push_huawei_app_id: Option<String>,
+    push_huawei_client_secret: Option<String>,
+    push_oppo_app_key: Option<String>,
+    push_oppo_master_secret: Option<String>,
 }
 
 const DEFAULT_ADMIN_USERNAME: &str = "admin";
@@ -71,6 +104,15 @@ reminder_enabled = true
 reminder_lead_minutes = 10
 # 开门提醒计算所用时区（相对 UTC 的小时偏移，中国为 8）
 tz_offset_hours = 8
+
+# ===== 厂商离线推送（App 被杀/不在前台也能收到新预约提醒）=====
+# 填写后重启生效；留空则不启用对应厂商推送。
+# 华为 HMS Push（AppGallery Connect 项目设置）：
+# push_huawei_app_id = ""          # App ID（同时作为 OAuth client_id）
+# push_huawei_client_secret = ""   # App secret（OAuth client_secret）
+# OPPO / 一加 Heytap Push（push.oppo.com 开放平台）：
+# push_oppo_app_key = ""
+# push_oppo_master_secret = ""
 "#;
 
 impl Config {
@@ -138,8 +180,39 @@ impl Config {
                 .and_then(|v| v.parse().ok())
                 .or(file.reminder_enabled)
                 .unwrap_or(true),
+            push: PushConfig {
+                huawei: match (
+                    pick("PUSH_HUAWEI_APP_ID", file.push_huawei_app_id),
+                    pick("PUSH_HUAWEI_CLIENT_SECRET", file.push_huawei_client_secret),
+                ) {
+                    (Some(app_id), Some(client_secret)) => Some(HuaweiPush {
+                        app_id,
+                        client_secret,
+                    }),
+                    _ => None,
+                },
+                oppo: match (
+                    pick("PUSH_OPPO_APP_KEY", file.push_oppo_app_key),
+                    pick("PUSH_OPPO_MASTER_SECRET", file.push_oppo_master_secret),
+                ) {
+                    (Some(app_key), Some(master_secret)) => Some(OppoPush {
+                        app_key,
+                        master_secret,
+                    }),
+                    _ => None,
+                },
+            },
         }
     }
+}
+
+/// 环境变量优先于配置文件；两者皆空（或为空串）时返回 None。
+fn pick(env_key: &str, file_val: Option<String>) -> Option<String> {
+    env::var(env_key)
+        .ok()
+        .or(file_val)
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
 }
 
 /// 读取可执行文件同级的 `config.toml`；若不存在则生成一份带注释的模板再读取。

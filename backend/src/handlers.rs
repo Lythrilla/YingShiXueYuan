@@ -104,6 +104,27 @@ impl AppState {
     pub(crate) fn wake_reminder(&self) {
         self.reminder_wake.notify_one();
     }
+
+    /// 通过厂商通道向所有已登记设备下发离线推送（App 被杀/不在前台也能收到）。
+    /// 在后台任务里异步发送，不阻塞当前请求；未配置任何厂商凭据时直接跳过。
+    pub(crate) fn notify_push(&self, title: impl Into<String>, body: impl Into<String>) {
+        if self.config.push.is_empty() {
+            return;
+        }
+        let tokens = match db::all_device_tokens(&self.conn()) {
+            Ok(t) if !t.is_empty() => t,
+            Ok(_) => return,
+            Err(e) => {
+                eprintln!("推送：读取设备令牌失败：{e}");
+                return;
+            }
+        };
+        let config = self.config.clone();
+        let (title, body) = (title.into(), body.into());
+        tokio::spawn(async move {
+            crate::push::dispatch(&config.push, tokens, &title, &body).await;
+        });
+    }
 }
 
 pub async fn healthz() -> Json<serde_json::Value> {
@@ -191,6 +212,14 @@ pub async fn create_booking(
     // 新预约入库后立即推送给所有在线管理端（SSE），并唤醒开门提醒调度器。
     st.publish("new_booking");
     st.wake_reminder();
+    // 厂商离线推送：App 被杀/不在前台时也能收到新预约提醒。
+    st.notify_push(
+        "新预约待处理",
+        format!(
+            "{} · {} {} · {}",
+            resource.name, payload.date, slot.name, payload.applicant_name
+        ),
+    );
     let mut resp = (StatusCode::CREATED, Json(booking)).into_response();
     resp.headers_mut()
         .insert(header::SET_COOKIE, remember_phone_cookie(payload.phone.trim()));
@@ -853,6 +882,46 @@ pub async fn delete_shift(
     let actor = st.require_super(&headers)?;
     db::delete_shift(&st.conn(), id)?;
     st.log(&actor, "shift.delete", &format!("shift:{id}"), "");
+    Ok(StatusCode::NO_CONTENT)
+}
+
+// ---------- Admin: 厂商离线推送令牌登记 ----------
+/// App 登录后上报本机推送令牌；按 (vendor, token) 去重，绑定到当前管理员。
+pub async fn push_register(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(payload): Json<PushRegister>,
+) -> ApiResult<StatusCode> {
+    let username = st.require_admin(&headers)?;
+    let vendor = payload.vendor.trim().to_lowercase();
+    let token = payload.token.trim();
+    if !matches!(vendor.as_str(), "huawei" | "oppo") {
+        return Err(ApiError::bad_request("不支持的推送通道"));
+    }
+    if token.is_empty() {
+        return Err(ApiError::bad_request("推送令牌不能为空"));
+    }
+    db::upsert_device_token(
+        &st.conn(),
+        &username,
+        &vendor,
+        token,
+        payload.manufacturer.trim(),
+    )?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// App 退出登录时注销本机推送令牌。
+pub async fn push_unregister(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(payload): Json<PushUnregister>,
+) -> ApiResult<StatusCode> {
+    st.require_admin(&headers)?;
+    let token = payload.token.trim();
+    if !token.is_empty() {
+        db::delete_device_token(&st.conn(), token)?;
+    }
     Ok(StatusCode::NO_CONTENT)
 }
 
