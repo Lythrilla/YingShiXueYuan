@@ -36,6 +36,17 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <activity
+            android:name=".OnePixelKeepAliveActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:finishOnTaskLaunch="true"
+            android:launchMode="singleInstance"
+            android:noHistory="true"
+            android:showWhenLocked="true"
+            android:taskAffinity="${applicationId}.keepalive"
+            android:theme="@style/OnePixelKeepAliveTheme"
+            android:turnScreenOn="true" />
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

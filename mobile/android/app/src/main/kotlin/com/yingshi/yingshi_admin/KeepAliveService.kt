@@ -5,8 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
@@ -20,10 +22,13 @@ class KeepAliveService : Service() {
         private const val NOTIFICATION_ID = 8890
     }
 
+    private var screenReceiver: BroadcastReceiver? = null
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, buildNotification())
+        registerScreenReceiver()
         KeepAliveReceiver.ensureBackgroundService(applicationContext)
         KeepAliveReceiver.schedule(applicationContext)
         KeepAliveReceiver.scheduleJob(applicationContext)
@@ -38,8 +43,41 @@ class KeepAliveService : Service() {
     }
 
     override fun onDestroy() {
+        unregisterScreenReceiver()
         KeepAliveReceiver.scheduleFastRecovery(applicationContext)
         super.onDestroy()
+    }
+
+    private fun registerScreenReceiver() {
+        if (screenReceiver != null) return
+        val receiver = ScreenKeepAliveReceiver()
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(receiver, filter, RECEIVER_NOT_EXPORTED)
+            } else {
+                @Suppress("DEPRECATION")
+                registerReceiver(receiver, filter)
+            }
+            screenReceiver = receiver
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun unregisterScreenReceiver() {
+        val receiver = screenReceiver ?: return
+        try {
+            unregisterReceiver(receiver)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            screenReceiver = null
+        }
     }
 
     private fun buildNotification(): Notification {
