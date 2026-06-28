@@ -6,11 +6,13 @@ import 'package:share_plus/share_plus.dart';
 
 import '../api_client.dart';
 import '../background_service.dart';
+import '../native.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../widgets/anim.dart';
 import '../widgets/ui.dart';
 import 'admins_page.dart';
+import 'keepalive_page.dart';
 import 'login_page.dart';
 import 'logs_page.dart';
 import 'settings_page.dart';
@@ -73,6 +75,7 @@ class _MorePageState extends State<MorePage> {
 
   Future<void> _logout() async {
     await Store.setToken(null);
+    await Native.startNativeAlertPoller(token: '');
     BackgroundPoller.reconnect();
     BackgroundPoller.pollNow();
     if (!mounted) return;
@@ -173,7 +176,10 @@ class _MorePageState extends State<MorePage> {
           child: Column(
             children: [
               _tile(Icons.notifications_active_outlined, '提醒设置',
-                  '新预约 / 开门提醒只震动', () => _go(const SettingsPage())),
+                  '铃声、震动、全屏弹窗', () => _go(const SettingsPage())),
+              _divider(),
+              _tile(Icons.shield_outlined, '后台保活',
+                  '防止划掉后台被系统杀掉', () => _go(const KeepAlivePage())),
               _divider(),
               _tile(Icons.logout, '退出登录', '', _logout,
                   danger: true),
