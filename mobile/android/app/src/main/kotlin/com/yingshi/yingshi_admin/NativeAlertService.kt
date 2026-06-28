@@ -131,7 +131,7 @@ class NativeAlertService : Service() {
         val channel = NotificationChannel(
             CHANNEL_ID,
             "独立预约监听进程",
-            NotificationManager.IMPORTANCE_LOW,
+            NotificationManager.IMPORTANCE_MIN,
         ).apply {
             description = "独立进程监听新预约，降低主界面进程被清理后的影响"
             setSound(null, null)
