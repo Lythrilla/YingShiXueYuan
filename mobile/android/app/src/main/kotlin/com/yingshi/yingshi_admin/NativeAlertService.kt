@@ -14,6 +14,11 @@ import androidx.core.app.NotificationCompat
 class NativeAlertService : Service() {
     companion object {
         const val EXTRA_TOKEN = "token"
+        const val EXTRA_SOUND = "sound"
+        const val EXTRA_VIBRATION = "vibration"
+        const val EXTRA_FULLSCREEN = "fullscreen"
+        const val EXTRA_RELENTLESS = "relentless"
+        const val EXTRA_POLL_SECONDS = "poll_seconds"
         private const val CHANNEL_ID = "yingshi_alert_process_guard"
         private const val NOTIFICATION_ID = 8892
     }
@@ -22,12 +27,23 @@ class NativeAlertService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, buildNotification())
-        if (intent?.hasExtra(EXTRA_TOKEN) == true) {
-            NativeAlertPoller.updateToken(
-                applicationContext,
-                intent.getStringExtra(EXTRA_TOKEN),
-            )
-        }
+        NativeAlertPoller.updateConfig(
+            applicationContext,
+            token = if (intent?.hasExtra(EXTRA_TOKEN) == true) {
+                intent.getStringExtra(EXTRA_TOKEN).orEmpty()
+            } else {
+                null
+            },
+            sound = intent?.optionalBoolean(EXTRA_SOUND),
+            vibration = intent?.optionalBoolean(EXTRA_VIBRATION),
+            fullscreen = intent?.optionalBoolean(EXTRA_FULLSCREEN),
+            relentless = intent?.optionalBoolean(EXTRA_RELENTLESS),
+            pollSeconds = if (intent?.hasExtra(EXTRA_POLL_SECONDS) == true) {
+                intent.getIntExtra(EXTRA_POLL_SECONDS, 10)
+            } else {
+                null
+            },
+        )
         NativeAlertPoller.start(applicationContext)
         NativeAlertPoller.pollNow(applicationContext)
         KeepAliveReceiver.schedule(applicationContext)
@@ -81,4 +97,7 @@ class NativeAlertService : Service() {
         }
         nm.createNotificationChannel(channel)
     }
+
+    private fun Intent.optionalBoolean(name: String): Boolean? =
+        if (hasExtra(name)) getBooleanExtra(name, true) else null
 }

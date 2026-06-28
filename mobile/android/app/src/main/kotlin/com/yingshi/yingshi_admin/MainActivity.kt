@@ -53,7 +53,12 @@ class MainActivity : FlutterActivity() {
                     "startNativeAlertPoller" -> {
                         KeepAliveReceiver.ensureAlertService(
                             applicationContext,
-                            call.argument<String>("token")
+                            token = call.argument<String>("token"),
+                            sound = call.argument<Boolean>("sound"),
+                            vibration = call.argument<Boolean>("vibration"),
+                            fullscreen = call.argument<Boolean>("fullscreen"),
+                            relentless = call.argument<Boolean>("relentless"),
+                            pollSeconds = call.argument<Int>("pollSeconds"),
                         )
                         result.success(null)
                     }

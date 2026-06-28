@@ -117,10 +117,31 @@ class KeepAliveReceiver : BroadcastReceiver() {
             }
         }
 
-        fun ensureAlertService(context: Context, token: String? = null) {
+        fun ensureAlertService(
+            context: Context,
+            token: String? = null,
+            sound: Boolean? = null,
+            vibration: Boolean? = null,
+            fullscreen: Boolean? = null,
+            relentless: Boolean? = null,
+            pollSeconds: Int? = null,
+        ) {
             val ctx = context.applicationContext
             val intent = Intent(ctx, NativeAlertService::class.java)
             if (token != null) intent.putExtra(NativeAlertService.EXTRA_TOKEN, token)
+            if (sound != null) intent.putExtra(NativeAlertService.EXTRA_SOUND, sound)
+            if (vibration != null) {
+                intent.putExtra(NativeAlertService.EXTRA_VIBRATION, vibration)
+            }
+            if (fullscreen != null) {
+                intent.putExtra(NativeAlertService.EXTRA_FULLSCREEN, fullscreen)
+            }
+            if (relentless != null) {
+                intent.putExtra(NativeAlertService.EXTRA_RELENTLESS, relentless)
+            }
+            if (pollSeconds != null) {
+                intent.putExtra(NativeAlertService.EXTRA_POLL_SECONDS, pollSeconds)
+            }
             try {
                 ContextCompat.startForegroundService(
                     ctx,

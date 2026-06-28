@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import '../background_service.dart';
+import '../native.dart';
 import '../permissions.dart';
 import '../theme.dart';
 import '../widgets/anim.dart';
@@ -62,6 +63,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Future<void> _resumeBackgroundPolling() async {
+    await Native.syncNativeAlertPoller();
     await BackgroundPoller.start();
     BackgroundPoller.reconnect();
     BackgroundPoller.pollNow();
