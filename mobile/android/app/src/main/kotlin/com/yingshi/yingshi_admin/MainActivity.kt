@@ -50,6 +50,11 @@ class MainActivity : FlutterActivity() {
                         requestFullScreenIntent()
                         result.success(null)
                     }
+                    "startNativeAlertPoller" -> {
+                        NativeAlertPoller.start(applicationContext)
+                        NativeAlertPoller.pollNow(applicationContext)
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -64,6 +69,7 @@ class MainActivity : FlutterActivity() {
         }
         KeepAliveReceiver.schedule(applicationContext)
         KeepAliveReceiver.scheduleJob(applicationContext)
+        NativeAlertPoller.start(applicationContext)
     }
 
     private fun pickRingtone(current: String?, result: MethodChannel.Result) {
