@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
@@ -23,7 +24,14 @@ class KeepAliveService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(NOTIFICATION_ID, buildNotification())
+        if (!enterForeground()) {
+            // 后台启动受限（Android 12+/14+ 会抛 ForegroundServiceStartNotAllowedException），
+            // 不要让异常逃逸导致进程崩溃；交给闹钟 / Job 心跳稍后在允许的时机重试。
+            KeepAliveReceiver.schedule(applicationContext)
+            KeepAliveReceiver.scheduleJob(applicationContext)
+            stopSelf()
+            return START_NOT_STICKY
+        }
         KeepAliveReceiver.ensureBackgroundService(applicationContext)
         KeepAliveReceiver.ensureAlertService(applicationContext)
         KeepAliveReceiver.schedule(applicationContext)
@@ -40,6 +48,40 @@ class KeepAliveService : Service() {
     override fun onDestroy() {
         KeepAliveReceiver.scheduleFastRecovery(applicationContext)
         super.onDestroy()
+    }
+
+    // Android 14（API 34）起 dataSync 前台服务有累计时长上限，到点系统回调 onTimeout，
+    // 必须主动停掉前台，否则会被系统强杀 / ANR。停掉后由心跳闹钟稍后重新拉起。
+    override fun onTimeout(startId: Int) {
+        handleTimeout()
+    }
+
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        handleTimeout()
+    }
+
+    private fun handleTimeout() {
+        KeepAliveReceiver.schedule(applicationContext)
+        KeepAliveReceiver.scheduleJob(applicationContext)
+        stopSelf()
+    }
+
+    private fun enterForeground(): Boolean {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    buildNotification(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, buildNotification())
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
     }
 
     private fun buildNotification(): Notification {
