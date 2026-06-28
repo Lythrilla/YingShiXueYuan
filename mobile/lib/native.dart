@@ -1,5 +1,7 @@
 import 'package:flutter/services.dart';
 
+import 'store.dart';
+
 /// 与原生（Android）交互：系统铃声选择、跳转系统通知设置。
 /// 仅在 UI isolate（已附着 Activity）可用。
 class Native {
@@ -23,6 +25,35 @@ class Native {
   /// 跳转到本应用的系统通知设置页。
   static Future<void> openNotificationSettings() =>
       _channel.invokeMethod('openNotificationSettings');
+
+  /// 启动 Android 原生预约监听兜底：直接连服务器 SSE/轮询并发原生通知。
+  static Future<void> startNativeAlertPoller({
+    String? token,
+    bool? sound,
+    bool? vibration,
+    bool? fullscreen,
+    bool? relentless,
+    int? pollSeconds,
+  }) =>
+      _channel.invokeMethod('startNativeAlertPoller', {
+        'token': token,
+        'sound': sound,
+        'vibration': vibration,
+        'fullscreen': fullscreen,
+        'relentless': relentless,
+        'pollSeconds': pollSeconds,
+      });
+
+  /// 把 Flutter 存储里的 token 与提醒设置同步到独立 :alert 原生进程。
+  static Future<void> syncNativeAlertPoller({String? token}) async =>
+      startNativeAlertPoller(
+        token: token ?? await Store.token(),
+        sound: await Store.alertSound(),
+        vibration: await Store.alertVibration(),
+        fullscreen: await Store.alertFullscreen(),
+        relentless: await Store.alertRelentless(),
+        pollSeconds: await Store.pollSeconds(),
+      );
 
   /// 设备厂商（如 Xiaomi / HUAWEI / OPPO / vivo / samsung）。
   static Future<String> manufacturer() async =>
