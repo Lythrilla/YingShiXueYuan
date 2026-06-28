@@ -1,10 +1,15 @@
 package com.yingshi.yingshi_admin
 
+import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
+import androidx.core.app.NotificationCompat
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
@@ -29,6 +34,7 @@ object NativeAlertPoller {
 
     private const val BOOKING_ID_BASE = 100000
     private const val DOOR_ID_BASE = 300000
+    private const val ALERT_CHANNEL_ID = "yingshi_alert_v4"
 
     private const val ACTION_APPROVE = "com.yingshi.yingshi_admin.NATIVE_APPROVE"
     private const val ACTION_CANCEL = "com.yingshi.yingshi_admin.NATIVE_CANCEL"
@@ -155,10 +161,58 @@ object NativeAlertPoller {
         val stale = seen - pendingIds
         for (id in stale) clearBooking(context, id)
 
-        // 有新的待处理预约时震动一下，不响铃、不弹通知。
-        val hasNewBooking = bookings.any { !seen.contains(it.id) }
-        if (hasNewBooking) NativeAlertSignal.buzz(context)
+        // 有新的待处理预约：弹一条可见通知 + 震动一下（不响铃）。
+        val newBookings = bookings.filter { !seen.contains(it.id) }
+        if (newBookings.isNotEmpty()) {
+            for (b in newBookings) showBookingNotification(context, b)
+            NativeAlertSignal.buzz(context)
+        }
         saveSeenIds(context, pendingIds)
+    }
+
+    private fun ensureAlertChannel(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channel = NotificationChannel(
+            ALERT_CHANNEL_ID,
+            "新预约提醒",
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = "有新的待处理预约时提醒"
+            setSound(null, null)
+            enableVibration(false)
+        }
+        nm.createNotificationChannel(channel)
+    }
+
+    /// 弹一条可见的新预约通知（震动由 NativeAlertSignal.buzz 单独触发）。
+    private fun showBookingNotification(context: Context, b: NativeBooking) {
+        ensureAlertChannel(context)
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            ?: Intent()
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PendingIntent.FLAG_IMMUTABLE
+            } else {
+                0
+            }
+        val pi = PendingIntent.getActivity(context, BOOKING_ID_BASE + b.id, launch, flags)
+        val slot = b.slotName.ifBlank { b.slotRange }
+        val detail = listOf(b.resource, b.date, slot)
+            .filter { it.isNotBlank() }
+            .joinToString(" · ")
+        val notif = NotificationCompat.Builder(context, ALERT_CHANNEL_ID)
+            .setSmallIcon(context.applicationInfo.icon)
+            .setContentTitle("新预约待处理 · ${b.applicant}")
+            .setContentText(detail)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setSound(null)
+            .setVibrate(null)
+            .setAutoCancel(true)
+            .setContentIntent(pi)
+            .build()
+        nm.notify(BOOKING_ID_BASE + b.id, notif)
     }
 
     private fun startSseLoop(context: Context) {

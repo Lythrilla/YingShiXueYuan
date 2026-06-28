@@ -26,7 +26,7 @@ class BackgroundPoller {
         autoStartOnBoot: true,
         notificationChannelId: Notifications.serviceChannelId,
         initialNotificationTitle: '录音预约',
-        initialNotificationContent: '后台监控运行中',
+        initialNotificationContent: '运行中',
         foregroundServiceNotificationId: 8888,
         foregroundServiceTypes: [AndroidForegroundType.dataSync],
       ),
@@ -130,7 +130,8 @@ Future<void> _handleDoorReminder(
     // 同一条预约只提醒一次。
     final fresh = await Store.markDoorReminded(reminder.bookingId);
     if (!fresh) return;
-    // 不弹通知，只震动一下。
+    // 弹一条可见通知 + 震动一下。
+    await Notifications.showDoorReminder(reminder);
     await AlertEngine.fire();
     service.invoke('door', data);
   } catch (e) {
@@ -149,7 +150,7 @@ Future<void> _poll(ServiceInstance service) async {
     if (service is AndroidServiceInstance) {
       await service.setForegroundNotificationInfo(
         title: '录音预约',
-        content: '后台监控运行中',
+        content: '运行中',
       );
     }
     service.invoke('update', {'loggedIn': false});
@@ -173,7 +174,7 @@ Future<void> _poll(ServiceInstance service) async {
       // 常驻通知保持安静、静态，不随待处理数量变动以免打扰。
       await service.setForegroundNotificationInfo(
         title: '录音预约',
-        content: '后台监控运行中',
+        content: '运行中',
       );
     }
 

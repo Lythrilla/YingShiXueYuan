@@ -17,8 +17,10 @@ import androidx.core.app.NotificationCompat
 /// 并用 START_STICKY 让系统在进程被回收后尽量重建本服务。
 class KeepAliveService : Service() {
     companion object {
-        private const val CHANNEL_ID = "yingshi_keepalive_guard"
-        private const val NOTIFICATION_ID = 8890
+        // 与 Flutter 前台服务、:alert 进程合用同一条通知（同一通知 id 在整个应用内只会
+        // 显示一条），避免通知栏出现多条「守护中 / 监听中 / 运行中」。
+        private const val CHANNEL_ID = "yingshi_service_v2"
+        private const val NOTIFICATION_ID = 8888
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -97,11 +99,11 @@ class KeepAliveService : Service() {
         val pi = PendingIntent.getActivity(this, 8891, launchIntent, flags)
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(applicationInfo.icon)
-            .setContentTitle("录音预约 · 守护中")
-            .setContentText("防止后台监控被清理，确保新预约提醒")
+            .setContentTitle("录音预约")
+            .setContentText("运行中")
             .setOngoing(true)
             .setSilent(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
             .setContentIntent(pi)
             .build()
     }
@@ -111,10 +113,10 @@ class KeepAliveService : Service() {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "后台守护服务",
+            "后台运行",
             NotificationManager.IMPORTANCE_MIN
         ).apply {
-            description = "守护后台监控服务，降低被系统清理的概率"
+            description = "保持后台运行以接收新预约提醒"
             setSound(null, null)
             enableVibration(false)
         }
