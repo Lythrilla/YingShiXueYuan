@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import '../background_service.dart';
-import '../native.dart';
 import '../permissions.dart';
 import '../theme.dart';
 import '../widgets/anim.dart';
@@ -33,7 +32,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _resumeBackgroundPolling();
     WidgetsBinding.instance.addPostFrameCallback((_) => _ensurePermissions());
-    // 后台 isolate 收到 SSE / 轮询事件后会 invoke 这些消息到 UI。
+    // 前台轮询器收到 SSE / 轮询事件后会发到这些事件流。
     _subs.add(BackgroundPoller.instance.on('update').listen((_) {
       if (mounted) bumpRefresh();
     }));
@@ -63,7 +62,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Future<void> _resumeBackgroundPolling() async {
-    await Native.syncNativeAlertPoller();
     await BackgroundPoller.start();
     BackgroundPoller.reconnect();
     BackgroundPoller.pollNow();
