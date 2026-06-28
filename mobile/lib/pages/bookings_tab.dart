@@ -4,6 +4,7 @@ import '../api_client.dart';
 import '../app_state.dart';
 import '../background_service.dart';
 import '../models.dart';
+import '../notification_service.dart';
 import '../theme.dart';
 import '../widgets/anim.dart';
 import '../widgets/ui.dart';
@@ -84,22 +85,29 @@ class _BookingsTabState extends State<BookingsTab> {
   Future<void> _verify(Booking b) async {
     final note = await _askNote('通过预约', '可填写审批备注（选填）');
     if (note == null) return;
-    await _run(() async => (await ApiClient.fromStore()).verify(b.id, note: note),
-        '已通过');
+    await _run(() async {
+      await (await ApiClient.fromStore()).verify(b.id, note: note);
+      await Notifications.clearProcessedBooking(b.id);
+    }, '已通过');
   }
 
   Future<void> _cancel(Booking b) async {
     final note = await _askNote('取消预约', '可填写取消原因（选填）',
         confirmText: '确认取消', danger: true);
     if (note == null) return;
-    await _run(() async => (await ApiClient.fromStore()).cancel(b.id, note: note),
-        '已取消');
+    await _run(() async {
+      await (await ApiClient.fromStore()).cancel(b.id, note: note);
+      await Notifications.clearProcessedBooking(b.id);
+    }, '已取消');
   }
 
   Future<void> _delete(Booking b) async {
     final ok = await _confirmDelete('删除预约', '确认彻底删除「${b.applicantName} · ${b.resource.name}」的预约记录？删除后不可恢复。');
     if (!ok) return;
-    await _run(() async => (await ApiClient.fromStore()).deleteBooking(b.id), '已删除');
+    await _run(() async {
+      await (await ApiClient.fromStore()).deleteBooking(b.id);
+      await Notifications.clearProcessedBooking(b.id);
+    }, '已删除');
   }
 
   Future<void> _batch(String op) async {
@@ -109,7 +117,11 @@ class _BookingsTabState extends State<BookingsTab> {
           '批量删除 ${_selected.length} 条', '确认彻底删除选中的 ${_selected.length} 条预约记录？删除后不可恢复。');
       if (!ok) return;
       await _run(() async {
-        final n = await (await ApiClient.fromStore()).batch('delete', _selected.toList());
+        final ids = _selected.toList();
+        final n = await (await ApiClient.fromStore()).batch('delete', ids);
+        for (final id in ids) {
+          await Notifications.clearProcessedBooking(id);
+        }
         if (mounted) setState(() => _selected.clear());
         return n;
       }, '已批量删除');
@@ -123,8 +135,12 @@ class _BookingsTabState extends State<BookingsTab> {
         danger: !isVerify);
     if (note == null) return;
     await _run(() async {
+      final ids = _selected.toList();
       final n =
-          await (await ApiClient.fromStore()).batch(op, _selected.toList(), note: note);
+          await (await ApiClient.fromStore()).batch(op, ids, note: note);
+      for (final id in ids) {
+        await Notifications.clearProcessedBooking(id);
+      }
       if (mounted) setState(() => _selected.clear());
       return n;
     }, isVerify ? '已批量通过' : '已批量取消');

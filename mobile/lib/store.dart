@@ -15,6 +15,8 @@ class Store {
   static const _kRingtoneUri = 'ringtone_uri';
   static const _kRingtoneTitle = 'ringtone_title';
   static const _kSeenPendingIds = 'seen_pending_ids';
+  static const _kActivePendingNotificationIds =
+      'active_pending_notification_ids';
 
   /// 服务器地址写死，用户无需也无法修改。
   static const defaultServerUrl = 'http://117.72.222.31:8888';
@@ -98,9 +100,13 @@ class Store {
   }
 
   // ---------- 跨 isolate 共享：已提醒过的待处理 ID ----------
+  static Set<int> _intSet(List<String> list) {
+    return list.map(int.tryParse).whereType<int>().toSet();
+  }
+
   static Future<Set<int>> seenPendingIds() async {
     final list = (await _prefs()).getStringList(_kSeenPendingIds) ?? const [];
-    return list.map(int.parse).toSet();
+    return _intSet(list);
   }
 
   static Future<void> setSeenPendingIds(Set<int> ids) async {
@@ -108,6 +114,38 @@ class Store {
       _kSeenPendingIds,
       ids.map((e) => e.toString()).toList(),
     );
+  }
+
+  static Future<void> removeSeenPendingId(int id) async {
+    final ids = await seenPendingIds();
+    ids.remove(id);
+    await setSeenPendingIds(ids);
+  }
+
+  static Future<Set<int>> activePendingNotificationIds() async {
+    final list =
+        (await _prefs()).getStringList(_kActivePendingNotificationIds) ??
+        const [];
+    return _intSet(list);
+  }
+
+  static Future<void> setActivePendingNotificationIds(Set<int> ids) async {
+    await (await _prefs()).setStringList(
+      _kActivePendingNotificationIds,
+      ids.map((e) => e.toString()).toList(),
+    );
+  }
+
+  static Future<void> addActivePendingNotificationId(int id) async {
+    final ids = await activePendingNotificationIds();
+    ids.add(id);
+    await setActivePendingNotificationIds(ids);
+  }
+
+  static Future<void> removeActivePendingNotificationId(int id) async {
+    final ids = await activePendingNotificationIds();
+    ids.remove(id);
+    await setActivePendingNotificationIds(ids);
   }
 
   // ---------- 开门提醒去重：已提醒过的预约 ID ----------
