@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../api_client.dart';
 import '../background_service.dart';
+import '../native.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../widgets/anim.dart';
@@ -74,6 +75,7 @@ class _MorePageState extends State<MorePage> {
 
   Future<void> _logout() async {
     await Store.setToken(null);
+    await Native.startNativeAlertPoller(token: '');
     BackgroundPoller.reconnect();
     BackgroundPoller.pollNow();
     if (!mounted) return;

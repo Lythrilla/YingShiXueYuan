@@ -31,6 +31,7 @@ object NativeAlertPoller {
     private const val KEY_RELENTLESS = "flutter.alert_relentless"
     private const val KEY_POLL_SECONDS = "flutter.poll_seconds"
     private const val KEY_SEEN_IDS = "native_seen_pending_ids"
+    private const val KEY_NATIVE_TOKEN = "native_token"
 
     private const val SUMMARY_CHANNEL_ID = "yingshi_summary"
     private const val ALERT_CHANNEL_ID = "yingshi_native_alert_v1"
@@ -60,6 +61,16 @@ object NativeAlertPoller {
             pollSoon(0L)
             startSseLoop(context.applicationContext)
         }
+    }
+
+    fun updateToken(context: Context, token: String?) {
+        val editor = nativePrefs(context).edit()
+        if (token.isNullOrEmpty()) {
+            editor.remove(KEY_NATIVE_TOKEN)
+        } else {
+            editor.putString(KEY_NATIVE_TOKEN, token)
+        }
+        editor.apply()
     }
 
     fun pollNow(context: Context? = appContext) {
@@ -406,7 +417,8 @@ object NativeAlertPoller {
     }
 
     private fun readToken(context: Context): String? =
-        flutterPrefs(context).getString(KEY_TOKEN, null)
+        nativePrefs(context).getString(KEY_NATIVE_TOKEN, null)
+            ?: flutterPrefs(context).getString(KEY_TOKEN, null)
 
     private fun readBool(context: Context, key: String, default: Boolean): Boolean {
         val prefs = flutterPrefs(context)

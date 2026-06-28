@@ -56,6 +56,14 @@
             android:stopWithTask="false" />
 
         <service
+            android:name=".NativeAlertService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync"
+            android:process=":alert"
+            android:stopWithTask="false" />
+
+        <service
             android:name=".KeepAliveJobService"
             android:enabled="true"
             android:exported="false"
@@ -79,6 +87,7 @@
         <receiver
             android:name=".NativeAlertActionReceiver"
             android:enabled="true"
+            android:process=":alert"
             android:exported="false" />
     </application>
     <queries>
