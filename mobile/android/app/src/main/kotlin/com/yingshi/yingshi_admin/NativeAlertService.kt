@@ -11,28 +11,31 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 
-/// 守护前台服务：拉起 Flutter 后台服务与独立提醒进程，提高上划后的存活概率。
-/// 主要职责是在「从最近任务划掉应用」时（onTaskRemoved）立即拉回监控服务，
-/// 并用 START_STICKY 让系统在进程被回收后尽量重建本服务。
-class KeepAliveService : Service() {
+class NativeAlertService : Service() {
     companion object {
-        private const val CHANNEL_ID = "yingshi_keepalive_guard"
-        private const val NOTIFICATION_ID = 8890
+        const val EXTRA_TOKEN = "token"
+        private const val CHANNEL_ID = "yingshi_alert_process_guard"
+        private const val NOTIFICATION_ID = 8892
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, buildNotification())
-        KeepAliveReceiver.ensureBackgroundService(applicationContext)
-        KeepAliveReceiver.ensureAlertService(applicationContext)
+        if (intent?.hasExtra(EXTRA_TOKEN) == true) {
+            NativeAlertPoller.updateToken(
+                applicationContext,
+                intent.getStringExtra(EXTRA_TOKEN),
+            )
+        }
+        NativeAlertPoller.start(applicationContext)
+        NativeAlertPoller.pollNow(applicationContext)
         KeepAliveReceiver.schedule(applicationContext)
         KeepAliveReceiver.scheduleJob(applicationContext)
         return START_STICKY
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        KeepAliveReceiver.ensureBackgroundService(applicationContext)
         KeepAliveReceiver.scheduleFastRecovery(applicationContext)
         super.onTaskRemoved(rootIntent)
     }
@@ -52,11 +55,11 @@ class KeepAliveService : Service() {
             } else {
                 0
             }
-        val pi = PendingIntent.getActivity(this, 8891, launchIntent, flags)
+        val pi = PendingIntent.getActivity(this, 8893, launchIntent, flags)
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(applicationInfo.icon)
-            .setContentTitle("录音预约 · 守护中")
-            .setContentText("防止后台监控被清理，确保新预约提醒")
+            .setContentTitle("录音预约 · 独立监听中")
+            .setContentText("独立进程接收新预约并触发强提醒")
             .setOngoing(true)
             .setSilent(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -69,10 +72,10 @@ class KeepAliveService : Service() {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "后台守护服务",
-            NotificationManager.IMPORTANCE_LOW
+            "独立预约监听进程",
+            NotificationManager.IMPORTANCE_LOW,
         ).apply {
-            description = "守护后台监控服务，降低被系统清理的概率"
+            description = "独立进程监听新预约，降低主界面进程被清理后的影响"
             setSound(null, null)
             enableVibration(false)
         }

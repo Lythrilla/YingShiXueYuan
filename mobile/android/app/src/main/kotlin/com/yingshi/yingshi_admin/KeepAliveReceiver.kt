@@ -117,6 +117,20 @@ class KeepAliveReceiver : BroadcastReceiver() {
             }
         }
 
+        fun ensureAlertService(context: Context, token: String? = null) {
+            val ctx = context.applicationContext
+            val intent = Intent(ctx, NativeAlertService::class.java)
+            if (token != null) intent.putExtra(NativeAlertService.EXTRA_TOKEN, token)
+            try {
+                ContextCompat.startForegroundService(
+                    ctx,
+                    intent
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
         @Suppress("DEPRECATION")
         private fun isServiceRunning(context: Context, className: String): Boolean {
             val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -130,8 +144,7 @@ class KeepAliveReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         ensureGuardService(context)
         ensureBackgroundService(context)
-        NativeAlertPoller.start(context.applicationContext)
-        NativeAlertPoller.pollNow(context.applicationContext)
+        ensureAlertService(context)
         if (intent?.action != ACTION_KEEP_ALIVE) {
             scheduleFastRecovery(context)
         }

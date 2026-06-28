@@ -39,7 +39,7 @@ class _LoginPageState extends State<LoginPage> {
       await Store.setToken(res.token);
       await Store.setUsername(res.username);
       await Store.setRole(res.role);
-      await Native.startNativeAlertPoller();
+      await Native.startNativeAlertPoller(token: res.token);
       await BackgroundPoller.start();
       BackgroundPoller.reconnect();
       BackgroundPoller.pollNow();

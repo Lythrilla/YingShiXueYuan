@@ -7,10 +7,9 @@ import android.app.job.JobService
 class KeepAliveJobService : JobService() {
     override fun onStartJob(params: JobParameters?): Boolean {
         KeepAliveReceiver.ensureBackgroundService(applicationContext)
+        KeepAliveReceiver.ensureAlertService(applicationContext)
         KeepAliveReceiver.schedule(applicationContext)
         KeepAliveReceiver.scheduleJob(applicationContext)
-        NativeAlertPoller.start(applicationContext)
-        NativeAlertPoller.pollNow(applicationContext)
         return false
     }
 

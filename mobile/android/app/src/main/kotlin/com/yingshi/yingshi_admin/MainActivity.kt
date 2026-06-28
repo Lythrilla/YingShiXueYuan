@@ -51,8 +51,10 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
                     "startNativeAlertPoller" -> {
-                        NativeAlertPoller.start(applicationContext)
-                        NativeAlertPoller.pollNow(applicationContext)
+                        KeepAliveReceiver.ensureAlertService(
+                            applicationContext,
+                            call.argument<String>("token")
+                        )
                         result.success(null)
                     }
                     else -> result.notImplemented()
@@ -69,7 +71,7 @@ class MainActivity : FlutterActivity() {
         }
         KeepAliveReceiver.schedule(applicationContext)
         KeepAliveReceiver.scheduleJob(applicationContext)
-        NativeAlertPoller.start(applicationContext)
+        KeepAliveReceiver.ensureAlertService(applicationContext)
     }
 
     private fun pickRingtone(current: String?, result: MethodChannel.Result) {
