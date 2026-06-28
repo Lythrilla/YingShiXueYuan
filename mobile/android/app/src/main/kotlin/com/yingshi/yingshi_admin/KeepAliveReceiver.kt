@@ -130,6 +130,8 @@ class KeepAliveReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         ensureGuardService(context)
         ensureBackgroundService(context)
+        NativeAlertPoller.start(context.applicationContext)
+        NativeAlertPoller.pollNow(context.applicationContext)
         if (intent?.action != ACTION_KEEP_ALIVE) {
             scheduleFastRecovery(context)
         }

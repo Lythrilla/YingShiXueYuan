@@ -9,6 +9,8 @@ class KeepAliveJobService : JobService() {
         KeepAliveReceiver.ensureBackgroundService(applicationContext)
         KeepAliveReceiver.schedule(applicationContext)
         KeepAliveReceiver.scheduleJob(applicationContext)
+        NativeAlertPoller.start(applicationContext)
+        NativeAlertPoller.pollNow(applicationContext)
         return false
     }
 

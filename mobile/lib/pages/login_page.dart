@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api_client.dart';
 import '../background_service.dart';
+import '../native.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../widgets/anim.dart';
@@ -38,6 +39,7 @@ class _LoginPageState extends State<LoginPage> {
       await Store.setToken(res.token);
       await Store.setUsername(res.username);
       await Store.setRole(res.role);
+      await Native.startNativeAlertPoller();
       await BackgroundPoller.start();
       BackgroundPoller.reconnect();
       BackgroundPoller.pollNow();

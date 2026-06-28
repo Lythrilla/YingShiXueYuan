@@ -80,7 +80,7 @@ class Store {
       (await _prefs()).setBool(_kAlertRelentless, v);
 
   static Future<int> pollSeconds() async =>
-      (await _prefs()).getInt(_kPollSeconds) ?? 20;
+      (await _prefs()).getInt(_kPollSeconds) ?? 10;
   static Future<void> setPollSeconds(int v) async =>
       (await _prefs()).setInt(_kPollSeconds, v.clamp(10, 600));
 

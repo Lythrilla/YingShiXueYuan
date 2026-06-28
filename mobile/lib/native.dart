@@ -24,6 +24,10 @@ class Native {
   static Future<void> openNotificationSettings() =>
       _channel.invokeMethod('openNotificationSettings');
 
+  /// 启动 Android 原生预约监听兜底：直接连服务器 SSE/轮询并发原生通知。
+  static Future<void> startNativeAlertPoller() =>
+      _channel.invokeMethod('startNativeAlertPoller');
+
   /// 设备厂商（如 Xiaomi / HUAWEI / OPPO / vivo / samsung）。
   static Future<String> manufacturer() async =>
       (await _channel.invokeMethod<String>('manufacturer')) ?? '';

@@ -27,6 +27,7 @@ class KeepAliveService : Service() {
         KeepAliveReceiver.ensureBackgroundService(applicationContext)
         KeepAliveReceiver.schedule(applicationContext)
         KeepAliveReceiver.scheduleJob(applicationContext)
+        NativeAlertPoller.start(applicationContext)
         return START_STICKY
     }
 
