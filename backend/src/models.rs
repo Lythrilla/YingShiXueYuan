@@ -251,6 +251,32 @@ pub struct StatsReport {
     pub by_slot: Vec<LabeledCount>,
 }
 
+/// 一台设备登记的厂商推送令牌（用于离线推送）。
+#[derive(Debug, Clone, Serialize)]
+pub struct DeviceToken {
+    pub username: String,
+    /// 推送通道：`huawei` / `oppo`。
+    pub vendor: String,
+    /// 厂商下发的设备推送令牌（HMS push token / Heytap registration_id）。
+    pub token: String,
+    pub manufacturer: String,
+}
+
+/// App 上报推送令牌的请求体。
+#[derive(Debug, Deserialize)]
+pub struct PushRegister {
+    pub vendor: String,
+    pub token: String,
+    #[serde(default)]
+    pub manufacturer: String,
+}
+
+/// App 注销推送令牌（退出登录时）的请求体。
+#[derive(Debug, Deserialize)]
+pub struct PushUnregister {
+    pub token: String,
+}
+
 fn default_kind() -> String {
     "lab".to_string()
 }
