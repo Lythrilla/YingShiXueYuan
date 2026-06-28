@@ -3,13 +3,11 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'store.dart';
 
-/// 通知通道。新预约 / 开门提醒已改为「只震动」，不再弹任何提醒通知；
-/// 这里只保留前台服务所需的常驻通道，并清理掉历史遗留的提醒通道。
+/// 新预约 / 开门提醒已改为「只震动」，不再弹任何提醒通知，也不再有前台服务常驻通知；
+/// 这里仅用于清理历史遗留的通知通道与残留通知，状态栏保持干净。
 class Notifications {
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
-
-  static const serviceChannelId = 'yingshi_service';
 
   static const int bookingIdBase = 100000; // 历史通知 id 基数，用于清理残留
   static const int doorIdBase = 300000;
@@ -29,8 +27,9 @@ class Notifications {
           AndroidFlutterLocalNotificationsPlugin
         >();
     if (android11 != null) {
-      // 清理历史遗留的响铃 / 震动 / 汇总通道（现在只震动，不再弹通知）。
+      // 清理历史遗留的响铃 / 震动 / 汇总 / 前台服务通道（现在只震动，状态栏不再有任何通知）。
       for (final id in const [
+        'yingshi_service',
         'yingshi_alert',
         'yingshi_door',
         'yingshi_alert_v2',
@@ -47,17 +46,6 @@ class Notifications {
       ]) {
         await android11.deleteNotificationChannel(id);
       }
-      // 前台监控服务的常驻通知通道（须在服务 startForeground 前创建）。
-      await android11.createNotificationChannel(
-        const AndroidNotificationChannel(
-          serviceChannelId,
-          '后台监控服务',
-          description: '常驻后台监控，定时检查新的待处理预约',
-          importance: Importance.min,
-          playSound: false,
-          enableVibration: false,
-        ),
-      );
     }
     _inited = true;
   }

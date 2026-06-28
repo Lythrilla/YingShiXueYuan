@@ -3,12 +3,6 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
 
     <application
@@ -39,56 +33,6 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <!-- Android 14+ 要求前台服务静态声明类型，否则启动即崩溃 -->
-        <service
-            android:name="id.flutter.flutter_background_service.BackgroundService"
-            android:foregroundServiceType="dataSync"
-            android:stopWithTask="false"
-            android:exported="false"
-            tools:replace="android:foregroundServiceType,android:stopWithTask,android:exported" />
-
-        <!-- 守护服务：上划清理后台时立即拉回监控服务（与监控服务同进程，不额外占用通知） -->
-        <service
-            android:name=".KeepAliveService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="dataSync"
-            android:stopWithTask="false" />
-
-        <service
-            android:name=".NativeAlertService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="dataSync"
-            android:process=":alert"
-            android:stopWithTask="false" />
-
-        <service
-            android:name=".KeepAliveJobService"
-            android:enabled="true"
-            android:exported="false"
-            android:permission="android.permission.BIND_JOB_SERVICE" />
-
-        <!-- 保活心跳 + 开机/更新/解锁自愈：定时检查并拉活监控服务 -->
-        <receiver
-            android:name=".KeepAliveReceiver"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.yingshi.yingshi_admin.KEEP_ALIVE" />
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
-                <action android:name="android.intent.action.USER_PRESENT" />
-                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
-            android:name=".NativeAlertActionReceiver"
-            android:enabled="true"
-            android:process=":alert"
-            android:exported="false" />
     </application>
     <queries>
         <intent>
