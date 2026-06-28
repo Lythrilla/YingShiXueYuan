@@ -245,10 +245,19 @@ class Notifications {
       NotificationDetails(android: android, iOS: ios),
       payload: 'booking:${b.id}',
     );
+    await Store.addActivePendingNotificationId(b.id);
   }
 
-  static Future<void> cancelBooking(int bookingId) =>
-      _plugin.cancel(bookingIdBase + bookingId);
+  static Future<void> cancelBooking(int bookingId) async {
+    await _plugin.cancel(bookingIdBase + bookingId);
+    await Store.removeActivePendingNotificationId(bookingId);
+  }
+
+  static Future<void> clearProcessedBooking(int bookingId) async {
+    await cancelBooking(bookingId);
+    await _plugin.cancel(doorIdBase + bookingId);
+    await Store.removeSeenPendingId(bookingId);
+  }
 
   /// 展示「开门提醒」强提醒（区别于审批提醒：标题、通道、payload 都不同）。
   static Future<void> showDoorReminder(
@@ -341,13 +350,25 @@ class Notifications {
       } else {
         await api.cancel(id);
       }
-      await cancelBooking(id);
-      final seen = await Store.seenPendingIds()
-        ..remove(id);
-      await Store.setSeenPendingIds(seen);
+      await clearProcessedBooking(id);
+      await _syncSummaryAfterAction(api);
     } catch (e) {
       debugPrint('notification action failed: $e');
     }
+  }
+
+  static Future<void> _syncSummaryAfterAction(ApiClient api) async {
+    final pending = await api.pendingBookings();
+    final pendingIds = pending.map((b) => b.id).toSet();
+    final active = await Store.activePendingNotificationIds();
+    final seen = await Store.seenPendingIds();
+    for (final id in {...active, ...seen}.difference(pendingIds)) {
+      await clearProcessedBooking(id);
+    }
+    await showSummary(pendingIds.length);
+    await Store.setActivePendingNotificationIds(pendingIds);
+    await Store.setSeenPendingIds(pendingIds);
+    if (pendingIds.isEmpty) await AlertEngine.stop();
   }
 }
 

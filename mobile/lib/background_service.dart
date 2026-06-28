@@ -151,7 +151,14 @@ Future<void> _handleDoorReminder(
 Future<void> _poll(ServiceInstance service) async {
   final token = await Store.token();
   if (token == null || token.isEmpty) {
+    final active = await Store.activePendingNotificationIds();
+    final seen = await Store.seenPendingIds();
+    for (final id in {...active, ...seen}) {
+      await Notifications.clearProcessedBooking(id);
+    }
     await Notifications.showSummary(0);
+    await Store.setActivePendingNotificationIds({});
+    await Store.setSeenPendingIds({});
     await AlertEngine.stop();
     if (service is AndroidServiceInstance) {
       await service.setForegroundNotificationInfo(
@@ -167,9 +174,10 @@ Future<void> _poll(ServiceInstance service) async {
     final api = await ApiClient.fromStore();
     final pending = await api.pendingBookings();
     final pendingIds = pending.map((b) => b.id).toSet();
+    final active = await Store.activePendingNotificationIds();
     final seen = await Store.seenPendingIds();
     final newIds = pendingIds.difference(seen);
-    final handledOrGone = seen.difference(pendingIds);
+    final handledOrGone = {...active, ...seen}.difference(pendingIds);
 
     final relentless = await Store.alertRelentless();
     final fullscreen = await Store.alertFullscreen();
@@ -190,9 +198,10 @@ Future<void> _poll(ServiceInstance service) async {
     }
     // 已处理 / 已消失的，撤掉通知。
     for (final id in handledOrGone) {
-      await Notifications.cancelBooking(id);
+      await Notifications.clearProcessedBooking(id);
     }
     await Notifications.showSummary(pendingIds.length);
+    await Store.setActivePendingNotificationIds(pendingIds);
     await Store.setSeenPendingIds(pendingIds);
 
     // 强提醒：有新预约时一定响；开启「不处理就一直响」时只要还有待处理就持续响。
