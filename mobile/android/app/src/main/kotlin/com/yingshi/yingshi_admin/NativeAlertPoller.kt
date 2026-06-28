@@ -32,12 +32,17 @@ object NativeAlertPoller {
     private const val KEY_POLL_SECONDS = "flutter.poll_seconds"
     private const val KEY_SEEN_IDS = "native_seen_pending_ids"
     private const val KEY_NATIVE_TOKEN = "native_token"
+    private const val KEY_NATIVE_SOUND = "native_alert_sound"
+    private const val KEY_NATIVE_VIBRATION = "native_alert_vibration"
+    private const val KEY_NATIVE_FULLSCREEN = "native_alert_fullscreen"
+    private const val KEY_NATIVE_RELENTLESS = "native_alert_relentless"
+    private const val KEY_NATIVE_POLL_SECONDS = "native_poll_seconds"
 
     private const val SUMMARY_CHANNEL_ID = "yingshi_summary"
-    private const val ALERT_CHANNEL_ID = "yingshi_native_alert_v1"
-    private const val ALERT_SOUND_CHANNEL_ID = "yingshi_native_alert_sound_v1"
-    private const val ALERT_VIBRATION_CHANNEL_ID = "yingshi_native_alert_vibration_v1"
-    private const val ALERT_SILENT_CHANNEL_ID = "yingshi_native_alert_silent_v1"
+    private const val ALERT_CHANNEL_ID = "yingshi_native_alert_v2"
+    private const val ALERT_SOUND_CHANNEL_ID = "yingshi_native_alert_sound_v2"
+    private const val ALERT_VIBRATION_CHANNEL_ID = "yingshi_native_alert_vibration_v2"
+    private const val ALERT_SILENT_CHANNEL_ID = "yingshi_native_alert_silent_v2"
     private const val BOOKING_ID_BASE = 100000
     private const val DOOR_ID_BASE = 300000
     private const val SUMMARY_NOTIFICATION_ID = 9990
@@ -63,12 +68,29 @@ object NativeAlertPoller {
         }
     }
 
-    fun updateToken(context: Context, token: String?) {
+    fun updateConfig(
+        context: Context,
+        token: String?,
+        sound: Boolean?,
+        vibration: Boolean?,
+        fullscreen: Boolean?,
+        relentless: Boolean?,
+        pollSeconds: Int?,
+    ) {
         val editor = nativePrefs(context).edit()
-        if (token.isNullOrEmpty()) {
+        if (token == null) {
+            // Keep the previous token when callers only want to refresh settings.
+        } else if (token.isEmpty()) {
             editor.remove(KEY_NATIVE_TOKEN)
         } else {
             editor.putString(KEY_NATIVE_TOKEN, token)
+        }
+        if (sound != null) editor.putBoolean(KEY_NATIVE_SOUND, sound)
+        if (vibration != null) editor.putBoolean(KEY_NATIVE_VIBRATION, vibration)
+        if (fullscreen != null) editor.putBoolean(KEY_NATIVE_FULLSCREEN, fullscreen)
+        if (relentless != null) editor.putBoolean(KEY_NATIVE_RELENTLESS, relentless)
+        if (pollSeconds != null) {
+            editor.putInt(KEY_NATIVE_POLL_SECONDS, pollSeconds.coerceIn(10, 600))
         }
         editor.apply()
     }
@@ -96,7 +118,9 @@ object NativeAlertPoller {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.cancel(BOOKING_ID_BASE + bookingId)
         nm.cancel(DOOR_ID_BASE + bookingId)
-        saveSeenIds(context, readSeenIds(context) - bookingId)
+        val remaining = readSeenIds(context) - bookingId
+        saveSeenIds(context, remaining)
+        if (remaining.isEmpty()) NativeAlertSignal.stop(context)
     }
 
     fun handleAction(
@@ -134,6 +158,7 @@ object NativeAlertPoller {
         val token = readToken(context)
         if (token.isNullOrBlank()) {
             clearAllKnown(context)
+            NativeAlertSignal.stop(context)
             return
         }
 
@@ -149,11 +174,12 @@ object NativeAlertPoller {
         val stale = seen - pendingIds
         for (id in stale) clearBooking(context, id)
 
-        val sound = readBool(context, KEY_SOUND, true)
-        val vibration = readBool(context, KEY_VIBRATION, true)
-        val fullscreen = readBool(context, KEY_FULLSCREEN, true)
-        val relentless = readBool(context, KEY_RELENTLESS, true)
+        val sound = readBool(context, KEY_NATIVE_SOUND, KEY_SOUND, true)
+        val vibration = readBool(context, KEY_NATIVE_VIBRATION, KEY_VIBRATION, true)
+        val fullscreen = readBool(context, KEY_NATIVE_FULLSCREEN, KEY_FULLSCREEN, true)
+        val relentless = readBool(context, KEY_NATIVE_RELENTLESS, KEY_RELENTLESS, true)
         val firstId = bookings.firstOrNull()?.id
+        val hasNewBooking = bookings.any { !seen.contains(it.id) }
 
         for (booking in bookings) {
             val shouldAlert = !seen.contains(booking.id) ||
@@ -167,6 +193,12 @@ object NativeAlertPoller {
             )
         }
         showSummary(context, pendingIds.size)
+        NativeAlertSignal.sync(
+            context,
+            shouldRun = pendingIds.isNotEmpty() && (relentless || hasNewBooking),
+            playSound = sound,
+            vibrate = vibration,
+        )
         saveSeenIds(context, pendingIds)
     }
 
@@ -345,6 +377,7 @@ object NativeAlertPoller {
         val ids = readSeenIds(context)
         for (id in ids) clearBooking(context, id)
         showSummary(context, 0)
+        NativeAlertSignal.stop(context)
         saveSeenIds(context, emptySet())
     }
 
@@ -420,12 +453,24 @@ object NativeAlertPoller {
         nativePrefs(context).getString(KEY_NATIVE_TOKEN, null)
             ?: flutterPrefs(context).getString(KEY_TOKEN, null)
 
-    private fun readBool(context: Context, key: String, default: Boolean): Boolean {
+    private fun readBool(
+        context: Context,
+        nativeKey: String,
+        flutterKey: String,
+        default: Boolean,
+    ): Boolean {
+        val native = nativePrefs(context)
+        if (native.contains(nativeKey)) return native.getBoolean(nativeKey, default)
         val prefs = flutterPrefs(context)
-        return if (prefs.contains(key)) prefs.getBoolean(key, default) else default
+        return if (prefs.contains(flutterKey)) prefs.getBoolean(flutterKey, default) else default
     }
 
     private fun readPollMillis(context: Context): Long {
+        val native = nativePrefs(context)
+        if (native.contains(KEY_NATIVE_POLL_SECONDS)) {
+            return native.getInt(KEY_NATIVE_POLL_SECONDS, 10).toLong()
+                .coerceIn(10L, 600L) * 1_000L
+        }
         val prefs = flutterPrefs(context)
         val seconds = try {
             prefs.getLong(KEY_POLL_SECONDS, 10L)

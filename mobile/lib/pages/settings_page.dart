@@ -51,7 +51,10 @@ class _SettingsPageState extends State<SettingsPage> {
     if (mounted) setState(() => _ringtone = picked.title);
   }
 
-  void _notifyService() => BackgroundPoller.settingsChanged();
+  Future<void> _notifyService() async {
+    BackgroundPoller.settingsChanged();
+    await Native.syncNativeAlertPoller();
+  }
 
   Future<void> _ensureFullScreenPermission() async {
     if (await Native.canUseFullScreenIntent()) {
@@ -104,6 +107,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     _switch('铃声提醒', '有待处理预约时循环播放铃声', _sound, (v) async {
                       await Store.setAlertSound(v);
                       setState(() => _sound = v);
+                      await _notifyService();
                     }),
                     _divider(),
                     ListTile(
@@ -127,6 +131,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     _switch('震动提醒', '配合铃声一起震动', _vibration, (v) async {
                       await Store.setAlertVibration(v);
                       setState(() => _vibration = v);
+                      await _notifyService();
                     }),
                     _divider(),
                     _switch('全屏弹窗', '锁屏时也以来电式全屏弹出（仅安卓）', _fullscreen,
@@ -134,6 +139,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       await Store.setAlertFullscreen(v);
                       setState(() => _fullscreen = v);
                       if (v) await _ensureFullScreenPermission();
+                      await _notifyService();
                     }),
                     if (_fullscreen && !_fsiGranted) ...[
                       _divider(),
@@ -167,7 +173,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         _relentless, (v) async {
                       await Store.setAlertRelentless(v);
                       setState(() => _relentless = v);
-                      _notifyService();
+                      await _notifyService();
                     }),
                   ]),
                 ),

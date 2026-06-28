@@ -249,13 +249,13 @@ class Notifications {
   }
 
   static Future<void> cancelBooking(int bookingId) async {
-    await _plugin.cancel(bookingIdBase + bookingId);
+    await _cancelNotification(bookingIdBase + bookingId);
     await Store.removeActivePendingNotificationId(bookingId);
   }
 
   static Future<void> clearProcessedBooking(int bookingId) async {
     await cancelBooking(bookingId);
-    await _plugin.cancel(doorIdBase + bookingId);
+    await _cancelNotification(doorIdBase + bookingId);
     await Store.removeSeenPendingId(bookingId);
   }
 
@@ -304,7 +304,7 @@ class Notifications {
   /// 汇总通知：常驻显示「X 条待处理」。count=0 时清除。
   static Future<void> showSummary(int count) async {
     if (count <= 0) {
-      await _plugin.cancel(summaryNotificationId);
+      await _cancelNotification(summaryNotificationId);
       return;
     }
     final android = AndroidNotificationDetails(
@@ -326,6 +326,14 @@ class Notifications {
       NotificationDetails(android: android, iOS: ios),
       payload: 'summary',
     );
+  }
+
+  static Future<void> _cancelNotification(int id) async {
+    try {
+      await _plugin.cancel(id);
+    } catch (e) {
+      debugPrint('notification cancel failed for $id: $e');
+    }
   }
 
   static void _onTap(NotificationResponse r) => _handleResponse(r);

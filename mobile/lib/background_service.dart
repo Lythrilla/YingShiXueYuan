@@ -11,7 +11,7 @@ import 'notification_service.dart';
 import 'sse_client.dart';
 import 'store.dart';
 
-/// 后台前台服务：常驻轮询「待处理预约」，并驱动强提醒。
+/// 后台前台服务：维持 Flutter 侧刷新；Android 预约强提醒由原生 :alert 进程负责。
 class BackgroundPoller {
   static final FlutterBackgroundService _service = FlutterBackgroundService();
 
@@ -146,17 +146,11 @@ Future<void> _handleDoorReminder(
   }
 }
 
-/// 单次轮询：拉取待处理预约 → 刷新常驻通知 → 触发/停止强提醒。
+/// 单次轮询：拉取待处理预约 → 刷新 Flutter 前台服务状态与 UI。
 @pragma('vm:entry-point')
 Future<void> _poll(ServiceInstance service) async {
   final token = await Store.token();
   if (token == null || token.isEmpty) {
-    final active = await Store.activePendingNotificationIds();
-    final seen = await Store.seenPendingIds();
-    for (final id in {...active, ...seen}) {
-      await Notifications.clearProcessedBooking(id);
-    }
-    await Notifications.showSummary(0);
     await Store.setActivePendingNotificationIds({});
     await Store.setSeenPendingIds({});
     await AlertEngine.stop();
@@ -174,40 +168,12 @@ Future<void> _poll(ServiceInstance service) async {
     final api = await ApiClient.fromStore();
     final pending = await api.pendingBookings();
     final pendingIds = pending.map((b) => b.id).toSet();
-    final active = await Store.activePendingNotificationIds();
     final seen = await Store.seenPendingIds();
     final newIds = pendingIds.difference(seen);
-    final handledOrGone = {...active, ...seen}.difference(pendingIds);
-
-    final relentless = await Store.alertRelentless();
-    final fullscreen = await Store.alertFullscreen();
-    final sound = await Store.alertSound();
-    final vibration = await Store.alertVibration();
-    final firstPendingId = pending.isEmpty ? null : pending.first.id;
-
-    // 每轮都重新展示（ongoing 通知不可划掉；万一被系统清掉也会重新出现）。
-    for (final b in pending) {
-      final shouldAlert =
-          newIds.contains(b.id) || (relentless && b.id == firstPendingId);
-      await Notifications.showBooking(
-        b,
-        fullScreen: fullscreen && newIds.contains(b.id),
-        playSound: sound && shouldAlert,
-        vibrate: vibration && shouldAlert,
-      );
-    }
-    // 已处理 / 已消失的，撤掉通知。
-    for (final id in handledOrGone) {
-      await Notifications.clearProcessedBooking(id);
-    }
-    await Notifications.showSummary(pendingIds.length);
     await Store.setActivePendingNotificationIds(pendingIds);
     await Store.setSeenPendingIds(pendingIds);
 
-    // 强提醒：有新预约时一定响；开启「不处理就一直响」时只要还有待处理就持续响。
-    if (pendingIds.isNotEmpty && (newIds.isNotEmpty || relentless)) {
-      await AlertEngine.fire();
-    } else if (pendingIds.isEmpty) {
+    if (pendingIds.isEmpty) {
       await AlertEngine.stop();
     }
 
